@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>对不齐</title>
+<link rel="icon" type="image/png" href="logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
 <style>
@@ -19,6 +20,8 @@ body{font-family:-apple-system,'PingFang SC','Helvetica Neue',sans-serif;backgro
 /* ===== TOPBAR ===== */
 #topbar{position:relative;height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;z-index:50}
 .logo{font-family:'Playfair Display',Georgia,serif;font-weight:900;font-size:18px;flex-shrink:0}
+.logo-wrap{display:flex;align-items:center;gap:8px}
+.logo-img{width:28px;height:28px;object-fit:contain;flex-shrink:0}
 .logo-sub{font-size:11px;color:var(--muted);letter-spacing:.5px;white-space:nowrap;font-style:italic;flex:1;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .dv{width:1px;height:18px;background:var(--border);flex-shrink:0}
 .tmpl-tabs{display:flex;background:var(--bg);border-radius:8px;padding:3px;gap:2px}
@@ -236,6 +239,7 @@ input[type=color]{width:30px;height:26px;border:1px solid var(--border);border-r
 <!-- ===== TOPBAR ===== -->
 <header id="topbar">
   <div class="logo-wrap">
+    <img class="logo-img" src="logo.png" alt="对不齐 logo">
     <span class="logo">对不齐</span>
   </div>
   <div class="dv"></div>
