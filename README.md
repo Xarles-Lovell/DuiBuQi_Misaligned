@@ -25,11 +25,8 @@
 打开浏览器访问：
 
 ```
-https://<你的GitHub用户名>.github.io/<仓库名>/Misaligned/
+https://xarles-lovell.github.io/DuiBuQi_Misaligned/
 ```
-
-> 默认入口是 `index.html`，所以 URL 末尾不需要写文件名。
-> 网页打开后标签页标题会显示"对不齐"。
 
 推荐使用最新版本的 Chrome / Edge / Firefox。Safari 也能用，部分功能会自动降级。
 
