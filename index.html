@@ -1,0 +1,2259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>对不齐</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f2f1ed;--surface:#fff;--border:#e4e3de;
+  --text:#1c1c1c;--muted:#9a9890;
+  --shadow-sm:0 1px 4px rgba(0,0,0,.07);
+  --shadow-md:0 6px 28px rgba(0,0,0,.11);
+}
+body{font-family:-apple-system,'PingFang SC','Helvetica Neue',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:14px}
+
+/* ===== TOPBAR ===== */
+#topbar{position:relative;height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;z-index:50}
+.logo{font-family:'Playfair Display',Georgia,serif;font-weight:900;font-size:18px;flex-shrink:0}
+.logo-sub{font-size:11px;color:var(--muted);letter-spacing:.5px;white-space:nowrap;font-style:italic;flex:1;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dv{width:1px;height:18px;background:var(--border);flex-shrink:0}
+.tmpl-tabs{display:flex;background:var(--bg);border-radius:8px;padding:3px;gap:2px}
+.ttab{padding:5px 12px;border:none;border-radius:6px;background:transparent;font-family:inherit;font-size:13px;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.ttab.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm);font-weight:500}
+.ttab-custom{position:relative;padding-right:22px}
+.ttab-custom .ttab-x{position:absolute;top:50%;right:4px;transform:translateY(-50%);width:14px;height:14px;border:none;background:transparent;color:#aaa;border-radius:50%;cursor:pointer;font-size:11px;line-height:1;display:none;align-items:center;justify-content:center;padding:0;font-family:inherit}
+.ttab-custom:hover .ttab-x{display:flex}
+.ttab-custom .ttab-x:hover{background:#fee;color:#ef4444}
+.ttab-add{font-weight:600;color:var(--muted);padding:5px 10px}
+.ttab-add:hover{color:var(--text);background:var(--surface)}
+.spacer{flex:1}
+.tbtn{display:flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:7px;background:var(--surface);font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;transition:all .12s;white-space:nowrap}
+.tbtn:hover{background:var(--bg)}
+.tbtn.primary{background:#1c1c1c;color:#fff;border-color:#1c1c1c}
+.tbtn.primary:hover{background:#333;border-color:#333}
+.color-dots{display:flex;gap:3px;align-items:center}
+.cdot{width:9px;height:9px;border-radius:50%;border:1px solid rgba(0,0,0,.1);flex-shrink:0}
+
+/* ===== MAIN ===== */
+#main{display:flex;flex:1;overflow:hidden}
+
+/* ===== EDITOR ===== */
+#editor-panel{flex:none;width:50%;min-width:300px;display:flex;flex-direction:column;overflow:hidden}
+#editor-header{padding:8px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;flex-shrink:0;background:var(--surface)}
+.ehint{font-size:11px;color:var(--muted)}
+.tbarbtn{padding:4px 9px;border:1px solid var(--border);border-radius:5px;background:var(--surface);font-family:inherit;font-size:12px;color:var(--text);cursor:pointer;transition:all .1s}
+.tbarbtn:hover{background:var(--bg)}
+.tbarbtn.hl{background:#fef3c7;border-color:#f59e0b;color:#78350f;font-weight:600}
+.tbarbtn:disabled{opacity:.4;cursor:not-allowed}
+.tbarbtn:disabled:hover{background:var(--surface)}
+.tbarbtn.primary{background:#1c1c1c;color:#fff;border-color:#1c1c1c}
+.tbarbtn.primary:hover{background:#333;border-color:#333}
+.th-spacer{flex:1}
+.th-group{display:flex;align-items:center;gap:6px}
+.paper-tab{padding:3px 9px;border:none;border-radius:4px;background:transparent;font-family:inherit;font-size:11px;color:var(--muted);cursor:pointer;transition:all .12s}
+.paper-tab.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
+#selection-rect{position:absolute;border:1px solid #3b82f6;background:rgba(59,130,246,.1);pointer-events:none;z-index:20;display:none}
+.etip{margin-left:auto;font-size:11px;color:#d0cec8}
+#editor-body{flex:1;overflow-y:auto;padding:13px;position:relative}
+#blocks-list{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}
+
+/* ===== BLOCK STYLES ===== */
+.blk-wrap{display:flex;align-items:flex-start;gap:5px;border-radius:8px;padding:2px 3px;transition:background .1s;position:relative}
+.blk-wrap:hover{background:rgba(0,0,0,.025)}
+.blk-wrap:hover .blk-handle,.blk-wrap:hover .blk-row-fmt{opacity:1}
+.blk-wrap.selected{background:rgba(59,130,246,.12);box-shadow:inset 0 0 0 1px rgba(59,130,246,.45)}
+.blk-wrap.focused{background:rgba(0,0,0,.03)}
+.blk-wrap.dragging{opacity:.45}
+.blk-wrap.drop-before::before,.blk-wrap.drop-after::after{content:'';position:absolute;left:6px;right:6px;height:2px;background:#3b82f6;border-radius:2px;z-index:5}
+.blk-wrap.drop-before::before{top:-1px}
+.blk-wrap.drop-after::after{bottom:-1px}
+.blk-handle{width:14px;flex-shrink:0;cursor:grab;display:flex;align-items:center;justify-content:center;color:#bbb;font-size:13px;opacity:0;transition:opacity .15s;user-select:none;align-self:stretch;line-height:1;padding-top:7px}
+.blk-handle:hover{color:#666}
+.blk-handle:active{cursor:grabbing}
+/* 主体竖直容器：上面是 [类型｜输入框｜×]，下面是 [B U I]（hover 才出） */
+.blk-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.blk-row-top{display:flex;align-items:flex-start;gap:5px}
+.blk-row-fmt{display:flex;align-items:center;gap:4px;padding:0 28px 0 28px;height:0;opacity:0;overflow:hidden;transition:opacity .15s,height .15s}
+.blk-wrap:hover .blk-row-fmt,.blk-wrap.focused .blk-row-fmt{height:24px;opacity:1}
+.blk-type-btn{width:22px;height:22px;border-radius:4px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:10px;font-family:inherit;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .1s;flex-shrink:0;margin-top:4px}
+.blk-type-btn:hover{background:var(--bg);color:var(--text)}
+.blk-del-btn{width:22px;height:22px;border-radius:4px;border:none;background:transparent;cursor:pointer;font-size:18px;color:#ef4444;display:flex;align-items:center;justify-content:center;transition:all .1s;flex-shrink:0;margin-top:4px;line-height:1}
+.blk-del-btn:hover{background:#fff0f0}
+/* 多选勾选 / 复制：极简风（透明底、浅灰图标），hover 才显形；勾选后图标变蓝 */
+.blk-check-btn{width:22px;height:22px;border-radius:4px;border:none;background:transparent;cursor:pointer;font-size:16px;font-family:inherit;color:#ccc;display:flex;align-items:center;justify-content:center;transition:all .1s;flex-shrink:0;margin-top:4px;padding:0;line-height:1}
+.blk-check-btn:hover{background:var(--bg);color:#888}
+.blk-check-btn.on{color:#3b82f6;font-weight:700}
+.blk-copy-btn{width:22px;height:22px;border-radius:4px;border:none;background:transparent;cursor:pointer;font-size:18px;color:#ccc;display:flex;align-items:center;justify-content:center;transition:all .1s;flex-shrink:0;margin-top:4px;padding:0;line-height:1}
+.blk-copy-btn:hover{background:var(--bg);color:#3b82f6}
+/* 行内格式按钮（B / U / I）：横排在输入框下方，hover 才出现 */
+.blk-fmt-btn{width:22px;height:20px;border-radius:4px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:11px;font-family:Georgia,'Times New Roman',serif;color:#888;display:flex;align-items:center;justify-content:center;transition:all .1s;padding:0;line-height:1;flex-shrink:0}
+.blk-fmt-btn:hover{background:var(--bg);color:var(--text);border-color:#bbb}
+.blk-fmt-btn.b{font-weight:900}
+.blk-fmt-btn.u{font-weight:900;text-decoration:underline;text-underline-offset:1px}
+.blk-fmt-btn.i{font-weight:900;font-style:italic}
+.blk-body{flex:1;min-width:0}
+[contenteditable]{outline:none;border:1px solid transparent;border-radius:6px;padding:6px 9px;line-height:1.7;transition:border-color .1s;width:100%;word-break:break-word;min-height:30px}
+[contenteditable]:focus{border-color:var(--border);background:var(--surface)}
+[contenteditable]:empty::before{content:attr(data-ph);color:#ccc;pointer-events:none;display:block}
+.edit-h1{font-size:21px;font-weight:700;line-height:1.3}
+.edit-h2{font-size:17px;font-weight:600;line-height:1.4}
+.edit-h3{font-size:15px;font-weight:600}
+.edit-body{font-size:14px;color:#444}
+.edit-quote{font-size:14px;color:#555;font-style:italic;border-left:3px solid #ddd!important;border-radius:0 6px 6px 0!important;background:#f9f9f7!important}
+.edit-cover,.edit-footer{font-size:14px;color:#555}
+.blk-img{border:2px dashed var(--border);border-radius:8px;background:var(--surface);text-align:center;padding:15px;transition:border-color .15s}
+.blk-img.empty{cursor:pointer;padding:18px}
+.blk-img.empty:hover{border-color:#aaa}
+.blk-img.filled{border-style:solid;border-color:var(--border);padding:8px}
+.blk-img-grid{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:flex-start}
+.blk-img-grid.g1{justify-content:center}
+.blk-img-cell{position:relative;border-radius:4px;overflow:hidden;background:#f5f4f0;cursor:pointer;width:120px;height:120px;flex-shrink:0}
+.blk-img-cell img{width:100%;height:100%;object-fit:cover;display:block}
+.blk-img-cell.uploading::after{content:'上传中…';position:absolute;inset:0;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
+.blk-img-cell-del{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;display:none;z-index:2}
+.blk-img-cell:hover .blk-img-cell-del{display:flex;align-items:center;justify-content:center}
+.blk-img-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;justify-content:center}
+.blk-img-actbtn{padding:4px 10px;border:1px solid var(--border);background:var(--surface);border-radius:5px;font-family:inherit;font-size:12px;color:#666;cursor:pointer;transition:all .1s}
+.blk-img-actbtn:hover{background:var(--bg);color:var(--text)}
+.blk-caption{margin-top:6px}
+.blk-caption [contenteditable]{font-size:12px;color:#888;text-align:center;font-style:italic;padding:4px 8px;min-height:24px}
+.blk-caption [contenteditable]:empty::before{content:'图注（可选）…';color:#ddd}
+.blk-divider-vis{padding:9px 8px;text-align:center;display:flex;align-items:center;gap:8px;color:#ccc;font-size:13px}
+.blk-divider-vis::before,.blk-divider-vis::after{content:'';flex:1;height:1px;background:var(--border)}
+#add-block-row{display:flex;flex-wrap:wrap;gap:5px;padding:4px 0;align-items:center}
+.add-group{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.add-spacer{width:36px;flex-shrink:0}
+.add-btn{padding:5px 11px;border:1px dashed var(--border);border-radius:6px;background:transparent;font-family:inherit;font-size:12px;color:var(--muted);cursor:pointer;transition:all .1s}
+.add-btn:hover{border-color:#aaa;color:var(--text);background:var(--surface)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{width:13px;height:13px;border:2px solid #ddd;border-top-color:#888;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle}
+mark{padding:0 2px}
+
+/* ===== RESIZE HANDLE ===== */
+#resize-handle{width:4px;background:transparent;cursor:col-resize;flex-shrink:0;transition:background .15s;position:relative;z-index:10}
+#resize-handle:hover,#resize-handle.dragging{background:var(--border)}
+
+/* ===== PREVIEW ===== */
+#preview-panel{flex:1;overflow-y:auto;background:#d8d6ce;display:flex;flex-direction:column;align-items:center;padding:20px 16px 28px;gap:11px;min-width:380px}
+.preview-label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#999}
+#phone-wrap{width:100%;max-width:420px;min-height:480px;background:#fff;border-radius:14px;box-shadow:0 14px 52px rgba(0,0,0,.18);flex-shrink:0;align-self:center}
+#phone-wrap > #preview-inner{border-radius:14px;overflow:hidden}
+.preview-note{font-size:11px;color:#aaa;text-align:center}
+
+/* ===== COLOR PANEL ===== */
+#color-panel{position:fixed;top:62px;right:16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:var(--shadow-md);z-index:200;width:268px;display:none}
+#color-panel.open{display:block}
+.cp-title{font-size:13px;font-weight:600;margin-bottom:12px}
+.cp-presets{display:flex;gap:6px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.cp-preset-btn{flex:1;padding:6px 4px;border:1px solid var(--border);border-radius:7px;background:var(--surface);cursor:pointer;font-family:inherit;font-size:12px;color:var(--text);transition:all .12s;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cp-preset-btn:hover{border-color:#aaa;background:var(--bg)}
+.cp-preset-btn.active{border-color:var(--text);background:var(--text);color:#fff}
+.cp-row{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.cp-label{font-size:12px;color:var(--muted);width:44px;flex-shrink:0}
+.cp-badge{font-size:10px;color:var(--muted);background:var(--bg);border-radius:4px;padding:1px 5px;flex-shrink:0}
+input[type=color]{width:30px;height:26px;border:1px solid var(--border);border-radius:5px;padding:1px;cursor:pointer;flex-shrink:0}
+.cp-hex{font-size:11px;color:var(--muted);font-family:'SF Mono',Consolas,monospace;flex:1}
+.cp-action-btn{width:100%;margin-top:6px;padding:7px;border:1px dashed var(--border);border-radius:6px;background:transparent;font-family:inherit;font-size:12px;color:var(--muted);cursor:pointer;transition:all .1s;text-align:center}
+.cp-action-btn:hover{border-color:#aaa;color:var(--text)}
+.cp-reset{margin-top:4px;font-size:11px;color:var(--muted);text-decoration:underline;cursor:pointer;background:none;border:none;font-family:inherit;width:100%;text-align:center;padding:5px}
+.cp-reset:hover{color:var(--text)}
+
+/* ===== TYPE MENU ===== */
+#type-menu{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:5px;box-shadow:var(--shadow-md);z-index:300;min-width:155px}
+.type-opt{display:block;width:100%;padding:7px 12px;border:none;background:none;border-radius:6px;text-align:left;font-family:inherit;font-size:13px;color:var(--text);cursor:pointer;transition:background .1s}
+.type-opt:hover{background:var(--bg)}
+
+/* ===== MODAL ===== */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:400;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--surface);border-radius:16px;width:560px;max-width:92vw;max-height:88vh;overflow-y:auto;padding:28px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal-close{position:absolute;top:16px;right:18px;width:28px;height:28px;border:none;background:var(--bg);border-radius:50%;cursor:pointer;font-size:16px;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:all .1s}
+.modal-close:hover{background:var(--border);color:var(--text)}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:22px}
+
+/* Steps */
+.steps{display:flex;flex-direction:column;gap:20px}
+.step{display:flex;gap:14px}
+.step-num{width:26px;height:26px;border-radius:50%;background:#1c1c1c;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-body{flex:1}
+.step-title{font-size:14px;font-weight:600;margin-bottom:8px}
+.step-desc{font-size:13px;color:#555;line-height:1.7;margin-bottom:10px}
+.prompt-tabs{display:flex;gap:4px;margin-bottom:8px}
+.ptab{padding:4px 10px;border:1px solid var(--border);border-radius:5px;font-size:12px;cursor:pointer;font-family:inherit;background:var(--surface);color:var(--muted);transition:all .1s}
+.ptab.active{background:var(--text);color:#fff;border-color:var(--text)}
+.prompt-box{background:#f5f4f0;border-radius:8px;padding:12px;font-size:12px;color:#333;line-height:1.7;white-space:pre-wrap;word-break:break-all;max-height:160px;overflow-y:auto;border:1px solid var(--border)}
+.copy-prompt-btn{margin-top:6px;padding:5px 12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-family:inherit;font-size:12px;cursor:pointer;transition:all .1s}
+.copy-prompt-btn:hover{background:var(--bg)}
+.upload-zone{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:border-color .15s;margin-top:6px}
+.upload-zone:hover{border-color:#aaa}
+.upload-zone.loaded{border-color:#16a34a;background:#f0fdf4}
+.uz-icon{font-size:24px;margin-bottom:6px}
+.uz-text{font-size:13px;color:var(--muted)}
+.uz-name{font-size:13px;color:#16a34a;font-weight:500;margin-top:4px}
+.warn-box{background:#fffbeb;border:1px solid #fbbf24;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400e;margin-top:10px;line-height:1.6}
+
+/* Manual modal */
+.manual-section{margin-bottom:18px}
+.ms-title{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.ms-title::before{content:'';display:inline-block;width:3px;height:14px;background:#1c1c1c;border-radius:2px}
+.ms-body{font-size:13px;color:#444;line-height:1.75}
+.ms-body p{margin-bottom:4px}
+
+.ms-note{font-size:13px;color:#c0392b;background:#fff5f5;border-left:3px solid #c0392b;padding:6px 10px;border-radius:0 4px 4px 0;margin-top:6px;line-height:1.75}
+
+/* Mermaid diagram */
+.mermaid-wrap{overflow-x:auto;margin-bottom:22px;padding:12px 0}
+.mermaid-wrap svg{max-width:100%;height:auto}
+
+/* Manual step groups */
+.ms-step{margin-bottom:24px}
+.ms-step-title{font-size:14px;font-weight:700;color:#1c1c1c;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+/* ===== TOAST ===== */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(14px);background:#1c1c1c;color:#fff;padding:9px 18px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:all .22s;z-index:999;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+</style>
+<script type="module">
+  import mermaid from 'https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.esm.min.mjs';
+  mermaid.initialize({startOnLoad:false,theme:'default'});
+  document.addEventListener('DOMContentLoaded',()=>{
+    document.getElementById('btn-manual').addEventListener('click',()=>{
+      setTimeout(()=>mermaid.run({querySelector:'.mermaid'}),80);
+    });
+  });
+</script>
+</head>
+<body>
+
+<!-- ===== TOPBAR ===== -->
+<header id="topbar">
+  <div class="logo-wrap">
+    <span class="logo">对不齐</span>
+  </div>
+  <div class="dv"></div>
+  <div class="tmpl-tabs">
+    <button class="ttab active" data-t="1">杂志</button>
+    <button class="ttab" data-t="2">报纸</button>
+    <button class="ttab" data-t="3">便签</button>
+    <span id="custom-tabs-host"></span>
+    <button class="ttab ttab-add" id="btn-add-custom" title="上传自定义模板">＋</button>
+  </div>
+  <span class="logo-sub">对不起，你的排版对不齐！</span>
+  <button class="tbtn primary" id="btn-manual">使用手册</button>
+  <button class="tbtn" id="btn-color">
+    <div class="color-dots" id="color-dots"></div>
+    配色
+  </button>
+  <button class="tbtn primary" id="btn-copy">复制 HTML</button>
+</header>
+
+<!-- ===== COLOR PANEL ===== -->
+<div id="color-panel">
+  <div class="cp-title">配色方案</div>
+  <div class="cp-presets">
+    <button class="cp-preset-btn active" id="preset-0">经典黑白</button>
+    <button class="cp-preset-btn" id="preset-1">墨绿高级</button>
+  </div>
+  <div class="cp-row"><span class="cp-label">主色</span><span class="cp-badge">70%</span><input type="color" id="c-primary"><span class="cp-hex" id="h-primary"></span></div>
+  <div class="cp-row"><span class="cp-label">辅色</span><span class="cp-badge" id="badge-secondary">25%</span><input type="color" id="c-secondary"><span class="cp-hex" id="h-secondary"></span></div>
+  <div class="cp-row"><span class="cp-label">点缀色</span><span class="cp-badge">&nbsp;&nbsp;5%</span><input type="color" id="c-accent"><span class="cp-hex" id="h-accent"></span></div>
+  <div class="cp-row" id="cp-row-accent2" style="display:none"><span class="cp-label">装饰色</span><span class="cp-badge">&nbsp;&nbsp;5%</span><input type="color" id="c-accent2"><span class="cp-hex" id="h-accent2"></span></div>
+  <button class="cp-reset" id="reset-colors">恢复预设配色</button>
+</div>
+
+<!-- ===== CUSTOM TEMPLATE MODAL ===== -->
+<div class="modal-overlay" id="custom-modal">
+  <div class="modal-box">
+    <button class="modal-close" id="close-custom">×</button>
+    <div class="modal-title">自定义模板</div>
+    <div class="modal-sub">用 AI 生成一个属于你的排版风格，然后导入进来用。</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">让 AI 生成模板文件</div>
+          <div class="step-desc">复制下方 Prompt，粘贴给 Claude（或任意 AI），把 <strong>[你的风格描述]</strong> 改成你想要的风格，让它生成一个 JSON 文件。</div>
+          <div class="prompt-tabs">
+            <button class="ptab active" data-pt="0">没有参考图</button>
+            <button class="ptab" data-pt="1">有参考图</button>
+          </div>
+          <div class="prompt-box" id="prompt-text"></div>
+          <button class="copy-prompt-btn" id="copy-prompt-btn">复制 Prompt</button>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">确认 AI 给的文件没问题</div>
+          <div class="step-desc">把 AI 返回的 JSON 内容保存为 <code>.json</code> 文件。检查：文件格式是否完整（包含 <code>name</code>、<code>blocks</code>、<code>wrapper</code> 三个字段）；<code>blocks</code> 里有没有 <code>h1</code>、<code>body</code>、<code>footer</code> 这几个必要块。</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">上传模板文件</div>
+          <div class="step-desc">上传 JSON 文件后，预览会立即切换到你的自定义风格。</div>
+          <div class="upload-zone" id="custom-upload-zone">
+            <div class="uz-icon">📂</div>
+            <div class="uz-text">点击上传 .json 模板文件</div>
+            <div class="uz-name" id="custom-tpl-name" style="display:none"></div>
+          </div>
+          <div class="warn-box">⚠ 刷新或关闭页面后模板会消失，记得把 JSON 文件保存好，下次用再重新上传。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MANUAL MODAL ===== -->
+<div class="modal-overlay" id="manual-modal">
+  <div class="modal-box">
+    <button class="modal-close" id="close-manual">×</button>
+    <div class="modal-title">怎么用</div>
+    <div class="modal-sub">5 分钟上手，从写作到发公众号。</div>
+
+    <!-- Mermaid 流程图 -->
+    <div class="mermaid-wrap">
+      <div class="mermaid">
+flowchart LR
+  classDef root fill:#1c1c1c,stroke:#1c1c1c,color:#fff
+  classDef step fill:#1c1c1c,stroke:#1c1c1c,color:#fff
+  classDef branch fill:#f2f1ed,stroke:#e4e3de,color:#1c1c1c
+  classDef leaf fill:#fff,stroke:#e4e3de,color:#1c1c1c
+  A["「对不齐」\n使用手册"]:::root --> B["一、确定风格"]:::step
+  A --> C["二、排版"]:::step
+  A --> D["三、发布"]:::step
+  B --> B1["固定模板（杂志/报纸/便签）"]:::branch
+  B --> B2["自定义模板"]:::branch
+  B1 --> B1a["调整配色"]:::leaf
+  B2 --> B2a["生成、导入"]:::leaf
+  B2a --> B2b["调整配色"]:::leaf
+  C --> C1["导入 Markdown 文件"]:::branch
+  C --> C2["直接写"]:::branch
+  C1 --> C1a["调整块、插入图片"]:::leaf
+  C2 --> C2a["编辑块、插入图片"]:::leaf
+  D --> D1["复制 HTML"]:::branch
+  D1 --> D2["粘贴进公众号"]:::leaf
+  D2 --> D3["预览、发布"]:::leaf
+      </div>
+    </div>
+
+    <!-- 一、确定风格 -->
+    <div class="ms-step">
+      <div class="ms-step-title">一、确定风格</div>
+      <div class="manual-section">
+        <div class="ms-title">固定模板</div>
+        <div class="ms-body">
+          <p>顶部切换「杂志 / 报纸 / 便签」三种风格，每种自带两个预设配色，点一下即可切换。</p>
+          <p>点顶部「配色」按钮，可以自定义主色 / 辅色 / 点缀色，实时预览效果。</p>
+        </div>
+      </div>
+      <div class="manual-section">
+        <div class="ms-title">自定义模板</div>
+        <div class="ms-body">
+          <p>点顶部「＋」按钮，弹窗里有现成的 Prompt，复制给 AI → 把返回的 JSON 保存为 <code>.json</code> 文件 → 上传，顶部会出现新 tab 并自动切换。</p>
+          <p>可以同时存多个自定义模板；hover tab 出现「×」可单独删除。同样支持配色面板调色。</p>
+          <p class="ms-note">注意：自定义模板没有持久化，刷新或关闭页面后会消失，把 JSON 文件保存好。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 二、排版 -->
+    <div class="ms-step">
+      <div class="ms-step-title">二、排版</div>
+      <div class="manual-section">
+        <div class="ms-title">导入 Markdown 文件</div>
+        <div class="ms-body">
+          <p>点编辑区顶部「导入 Markdown 文件」，自动按 <code>#</code> / <code>##</code> / <code>###</code> / <code>&gt;</code> / <code>---</code> 解析成对应块类型。封面和结尾不会被覆盖，需要单独编辑。</p>
+        </div>
+      </div>
+      <div class="manual-section">
+        <div class="ms-title">直接写：编辑内容</div>
+        <div class="ms-body">
+          <p>· <strong>添加块：</strong>编辑区底部按钮，分正文 / 标题 / 引用 / 分隔线 / 图片等类型，插入到当前编辑块的下方。</p>
+          <p>· <strong>修改内容：</strong>直接点击文字编辑。</p>
+          <p>· <strong>切换类型：</strong>每个块左侧按钮可切换块类型（如 H1 改成 H2）。</p>
+          <p>· <strong>复制块：</strong>块右侧「+」按钮。</p>
+          <p>· <strong>删除块：</strong>块右侧「×」按钮，或多选后按 Delete 键。</p>
+          <p>· <strong>调整顺序：</strong>悬停块左侧 → 出现 ⋮⋮ 手柄 → 拖动到目标位置。</p>
+        </div>
+      </div>
+      <div class="manual-section">
+        <div class="ms-title">直接写：批量操作</div>
+        <div class="ms-body">
+          <p>点块右侧「✓」加入多选（变蓝），再点取消；也可以在空白处拖出蓝色框选。</p>
+          <p>· 点任意选中块的「×」→ <strong>批量删除</strong>（或按 Delete 键）</p>
+          <p>· 点任意选中块的「+」→ <strong>批量复制</strong>，插到最后一个选中块下方</p>
+          <p>· 点 H1/H2 类型按钮 → <strong>批量改层级</strong></p>
+          <p>· 用 ⋮⋮ 手柄拖动 → <strong>整组移动</strong></p>
+        </div>
+      </div>
+      <div class="manual-section">
+        <div class="ms-title">直接写：行内格式</div>
+        <div class="ms-body">
+          <p>选中文字后，点 <strong>B</strong> / <u>B</u> / <em>B</em> 按钮，或用快捷键 Ctrl+B 加粗、Ctrl+U 下划线、Ctrl+I 斜体。</p>
+          <p>未选中文字直接点按钮，会对整个块应用格式，再点一次取消。</p>
+        </div>
+      </div>
+      <div class="manual-section">
+        <div class="ms-title">直接写：高亮重点</div>
+        <div class="ms-body">
+          <p>选中文字 → 点「高亮」，马克笔效果，颜色跟随点缀色。光标放到高亮文字里 → 点「取消高亮」撤销。</p>
+        </div>
+      </div>
+      <div class="manual-section">
+        <div class="ms-title">直接写：插入图片</div>
+        <div class="ms-body">
+          <p>点图片块一次可选多张（最多 9 张），上传完成后显示「✓ 全部已上传」。单张 ≤ 3MB，仅支持 JPG / PNG / WebP / GIF / BMP。</p>
+          <p>每张图右上角「×」可单独删除；下方「图注」框可加说明，<strong>不写就不显示</strong>。</p>
+          <p>预览效果：单图撑满宽度；多图自动居中换行，保持原比例不裁剪。</p>
+          <p class="ms-note">注意：图片有有效期，复制 HTML 后请尽快粘贴发布；微信发布后会自动转存，之后不受影响。</p>
+        </div>
+      </div>
+      <div class="manual-section">
+        <div class="ms-title">撤销 / 重做</div>
+        <div class="ms-body">
+          <p>顶部「↶ 撤销 / ↷ 重做」按钮，或快捷键 Ctrl+Z / Ctrl+Y。有可撤销内容时，撤销按钮会变成黑底提示。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 三、发布 -->
+    <div class="ms-step">
+      <div class="ms-step-title">三、发布</div>
+      <div class="manual-section">
+        <div class="ms-body">
+          <p>① 确认图片块显示「✓ 全部已上传」</p>
+          <p>② 点右上角「复制 HTML」</p>
+          <p>③ 打开公众号后台 → 新建图文 → 粘贴 → 预览 → 发布</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== MAIN ===== -->
+<div id="main">
+  <div id="editor-panel">
+    <div id="editor-header">
+      <button class="tbarbtn primary" id="btn-import-md">导入 Markdown 文件</button>
+      <input type="file" id="md-file-input" accept=".md,.markdown,text/plain" style="display:none">
+      <span class="th-spacer"></span>
+      <div class="th-group">
+        <span class="ehint">选中文字：</span>
+        <button class="tbarbtn hl" id="btn-hl">高亮</button>
+        <button class="tbarbtn" id="btn-unhl">取消高亮</button>
+      </div>
+      <span class="th-spacer"></span>
+      <div class="th-group" id="paper-group" style="display:none">
+        <span class="ehint">纸张：</span>
+        <div id="paper-tabs" style="background:var(--bg);border-radius:6px;padding:2px;gap:1px;align-items:center;display:flex">
+          <button class="paper-tab active" data-paper="grid-mid">中格</button>
+          <button class="paper-tab" data-paper="grid-sm">小格</button>
+        </div>
+      </div>
+      <span class="th-spacer" id="paper-spacer" style="display:none"></span>
+      <div class="th-group">
+        <button class="tbarbtn" id="btn-undo" title="撤销 (Ctrl+Z)">↶ 撤销</button>
+        <button class="tbarbtn" id="btn-redo" title="重做 (Ctrl+Y)">↷ 重做</button>
+      </div>
+    </div>
+    <div id="editor-body">
+      <div id="selection-rect"></div>
+      <div id="blocks-list"></div>
+      <div id="add-block-row">
+        <div class="add-group">
+          <button class="add-btn" data-type="cover">＋ 引言</button>
+        </div>
+        <span class="add-spacer"></span>
+        <div class="add-group">
+          <button class="add-btn" data-type="h1">＋ 一级标题</button>
+          <button class="add-btn" data-type="h2">＋ 二级标题</button>
+          <button class="add-btn" data-type="h3">＋ 三级标题</button>
+          <button class="add-btn" data-type="body">＋ 正文</button>
+          <button class="add-btn" data-type="quote">＋ 引用</button>
+          <button class="add-btn" data-type="divider">＋ 分隔线</button>
+          <button class="add-btn" data-type="image">＋ 图片</button>
+        </div>
+        <span class="add-spacer"></span>
+        <div class="add-group">
+          <button class="add-btn" data-type="footer">＋ 结尾</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="resize-handle"></div>
+  <div id="preview-panel">
+    <div class="preview-label">预览</div>
+    <div id="phone-wrap"><div id="preview-inner"></div></div>
+    <div class="preview-note">宽度随预览区变化 · 实际发布以公众号为准</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+/* ================================================
+   常量
+   ================================================ */
+const IMGBB_KEY = '253535ce2716139f7d67094888b61057';
+const IMGBB_TTL = 43200; // 12 小时后自动过期
+
+const TMPL_PRESETS = {
+  1:[
+    {label:'经典黑白', primary:'#1a1a1a', secondary:'#FDFBF2', accent:'#8b1a1a'},
+    {label:'墨绿高级', primary:'#194333', secondary:'#FFFBF5', accent:'#EBAC00'},
+  ],
+  2:[
+    {label:'复古报纸', primary:'#4D3B2E', secondary:'#F5F0E4', accent:'#8B7355', accent2:'#AD2525'},
+    {label:'深蓝新闻', primary:'#0F2540', secondary:'#F2F5F8', accent:'#1A6B9A', accent2:'#C4A060'},
+  ],
+  3:[
+    {label:'黑白灰', primary:'#2a2a2a', secondary:'#f9f9f9', accent:'#DEDEDE', paper:'grid-mid'},
+    {label:'蓝粉', primary:'#5b6b8a', secondary:'#fef6f8', accent:'#b8d4ec', paper:'grid-mid'},
+  ],
+};
+
+const TYPE_META = {
+  h1:{label:'H1',ph:'一级标题',editCls:'edit-h1'},
+  h2:{label:'H2',ph:'二级标题',editCls:'edit-h2'},
+  h3:{label:'H3',ph:'三级标题',editCls:'edit-h3'},
+  body:{label:'文',ph:'正文内容…',editCls:'edit-body'},
+  quote:{label:'引',ph:'引用文字…',editCls:'edit-quote'},
+  cover:{label:'引',ph:'引言（可选）…',editCls:'edit-cover'},
+  footer:{label:'尾',ph:'结尾语，如：作者 / 点赞关注',editCls:'edit-footer'},
+  image:{label:'图',ph:'图片',editCls:null},
+  divider:{label:'—',ph:'分隔线',editCls:null},
+};
+const TYPE_ORDER = ['h1','h2','h3','body','quote','image','divider','cover','footer'];
+
+/* ================================================
+   统一排版规范（所有内置模板 + AI 生成的自定义模板都遵循）
+   ================================================ */
+const TYPO = {
+  // 全局左右内边距（wrapper 自带，块本身不再加左右 margin）
+  pagePadX: 22,
+  // 字号
+  size: {
+    h1: 24, h2: 18, h3: 16,
+    body: 16, quote: 15, cover: 15, footer: 14,
+  },
+  // 加粗：只有标题加粗
+  bold: { h1:true, h2:true, h3:true, body:false, quote:false, cover:false, footer:false },
+  // 行高
+  lh: { h1:1.5, h2:1.5, h3:1.5, body:1.9, quote:1.85, cover:1.85, footer:1.8 },
+  // 仅 body 首行缩进 2em
+  indentBody: '2em',
+};
+
+/* ================================================
+   H1 编号工具：把 1..N 转成不同表示
+   ================================================ */
+// 两位数：01 02 ... 99
+function numPad2(n){return n<10?('0'+n):String(n)}
+// 英文数字：ONE / TWO / ... / NINETY-NINE；超出 99 回落到阿拉伯数字
+const ENG_ONES = ['','ONE','TWO','THREE','FOUR','FIVE','SIX','SEVEN','EIGHT','NINE',
+  'TEN','ELEVEN','TWELVE','THIRTEEN','FOURTEEN','FIFTEEN','SIXTEEN','SEVENTEEN','EIGHTEEN','NINETEEN'];
+const ENG_TENS = ['','','TWENTY','THIRTY','FORTY','FIFTY','SIXTY','SEVENTY','EIGHTY','NINETY'];
+function numEng(n){
+  if(n<=0||n>99)return String(n);
+  if(n<20)return ENG_ONES[n];
+  const t=Math.floor(n/10),o=n%10;
+  return o===0?ENG_TENS[t]:`${ENG_TENS[t]}-${ENG_ONES[o]}`;
+}
+// 中文大写：壹 / 贰 / ... / 玖拾玖；超出 99 回落到阿拉伯数字
+const CN_DIGITS = ['','壹','贰','叁','肆','伍','陆','柒','捌','玖'];
+function numCnUpper(n){
+  if(n<=0||n>99)return String(n);
+  if(n<10)return CN_DIGITS[n];
+  if(n===10)return '拾';
+  if(n<20)return '拾'+CN_DIGITS[n%10]; // 拾壹 拾贰 ...
+  const t=Math.floor(n/10),o=n%10;
+  return CN_DIGITS[t]+'拾'+(o===0?'':CN_DIGITS[o]); // 贰拾 / 贰拾壹 / ...
+}
+
+/* Prompt 模板 */
+const PROMPTS = [
+`帮我生成一个公众号排版模板，风格是 [用一句话描述风格，比如："极简白色系，有高级感"、"复古日式和风"、"暗黑赛博朋克"]。
+
+请输出一个 JSON 文件，严格按以下格式：
+
+{
+  "name": "模板名称",
+  "version": 1,
+  "colors": {
+    "primary":   "#xxxxxx",
+    "secondary": "#xxxxxx",
+    "accent":    "#xxxxxx"
+  },
+  "wrapper": "整体容器内联CSS（背景色、字体等），格式：key:value;key:value",
+  "blocks": {
+    "cover": "引言 HTML，用 {content} 代表用户文字",
+    "h1": "一级标题 HTML，用 {content} 代表标题",
+    "h2": "二级标题 HTML",
+    "h3": "三级标题 HTML",
+    "body": "正文段落 HTML，用 {content} 代表段落文字",
+    "quote": "引用块 HTML，用 {content} 代表引用文字",
+    "divider": "分隔线 HTML（不需要 {content}）",
+    "image": "图片 HTML，用 {src} 代表图片链接",
+    "footer": "结尾区域 HTML，用 {content} 代表结尾文字"
+  }
+}
+
+配色规范（重要）：
+- **colors 字段必填**：填这个风格的核心三色 — primary（主色 70%，正文/标题用）/ secondary（辅色 25%，背景/底色用）/ accent（点缀色 5%，装饰线/标签等用）
+- **wrapper 和 blocks 里凡是用到这三个颜色的地方，必须写成占位符 {primary} / {secondary} / {accent}**，不要直接写死 hex 色值。这样用户在配色面板调色时预览能跟着变。半透明色不便用占位符时可以写 hex，但能用占位符就尽量用
+
+H1 自动编号（重要）：
+- h1 模板里**应该**包含一个序号占位符，渲染时会被自动替换为该 H1 在文章里的顺序号
+- 可用占位符：{number}（阿拉伯数字 1/2/3）、{numberPad2}（01/02/03）、{numberEng}（ONE/TWO/.../NINETY-NINE）、{numberCn}（壹/贰/叁/.../玖拾玖）
+- {numberEng} 和 {numberCn} 支持到 99，超出回落到阿拉伯数字
+- 选哪种由你的风格决定。例如杂志风格可写 "NUMBER {numberPad2}"，报纸风格可写 "NUMBER · {numberEng}"，文艺风可写 "其 {numberCn}"
+
+排版规范（必须严格遵守，让模板与其他内置模板视觉一致）：
+- **字号**：h1=24px，h2=18px，h3=16px，body=16px，quote=15px，cover=15px，footer=14px
+- **加粗**：仅 h1 / h2 / h3 标题加粗（font-weight:bold），其他全部不加粗
+- **行高**：标题 1.5，正文 1.9，其他 1.8 左右
+- **首行缩进**：仅 body 块加 text-indent:2em；其他块不加缩进
+- **左右间距**：wrapper 自带 padding:24px 22px，所以块本身不要再加左右 margin（cover/footer 如果是通栏色块例外）
+- **引言风格**：cover 字号同正文、不加粗、italic、颜色稍淡，营造"引言"的氛围；不要做成大标题
+- **真正的标题来自 h1**：用户的"主标题"在 h1 块，要做最大、最显眼
+
+字号特例豁免（重要）：
+- 上面字号规范是默认值。如果某个块是这套风格的"招牌"（比如报纸的报头大字、复古海报的巨型 H1、杂志封面 drop cap），**允许在那一个块上突破规范**，做成更大、更夸张、能立得住整个风格
+- 但必须节制：每套模板里**最多 1–2 个块**这样豁免，其余仍走默认；不要全模板都"特殊"，那就没有特殊
+- 豁免请在该块的 HTML 注释或 JSON 顶层 README 字段里写明原因，方便用户理解
+
+技术要求：
+1. 所有样式必须内联在 style="" 里，不能用 <style> 标签
+2. 不能有任何 JavaScript
+3. 用于手机端微信公众号
+4. JSON 字符串里的双引号必须用 \" 转义
+5. **所有容器/包装类标签必须用 <section>，不要用 <div>**（公众号粘贴时会过滤掉 <div> 连同其样式）；行内文字用 <p> <span> <h2> <h3> 等正常标签即可
+6. 只输出 JSON，不要任何说明文字`,
+
+`我有一张排版参考图（已附在消息里），请模仿这个风格做一个公众号排版模板 JSON。
+
+请输出一个 JSON 文件，严格按以下格式：
+
+{
+  "name": "模板名称",
+  "version": 1,
+  "colors": {
+    "primary":   "#xxxxxx",
+    "secondary": "#xxxxxx",
+    "accent":    "#xxxxxx"
+  },
+  "wrapper": "整体容器内联CSS（含 padding:24px 22px）",
+  "blocks": {
+    "cover": "引言 HTML，用 {content} 代表用户文字",
+    "h1": "一级标题 HTML，用 {content} 代表标题",
+    "h2": "二级标题 HTML",
+    "h3": "三级标题 HTML",
+    "body": "正文段落 HTML，用 {content} 代表段落文字",
+    "quote": "引用块 HTML，用 {content} 代表引用文字",
+    "divider": "分隔线 HTML（不需要 {content}）",
+    "image": "图片 HTML，用 {src} 代表图片链接",
+    "footer": "结尾区域 HTML，用 {content} 代表结尾文字"
+  }
+}
+
+配色规范（重要）：
+- **colors 字段必填**：从参考图提取主色 primary（70%，正文/标题）、辅色 secondary（25%，背景/底色）、点缀色 accent（5%，装饰线/标签）
+- **wrapper 和 blocks 里用到这三个颜色的位置必须写成 {primary} / {secondary} / {accent} 占位符**，不要写死 hex（让用户能在配色面板调整）
+
+H1 自动编号（重要）：
+- h1 模板里应该包含序号占位符，渲染时会自动替换为该 H1 的顺序号
+- 可用占位符：{number} / {numberPad2} / {numberEng} / {numberCn}（英文和中文大写都支持 1–99，超出回落到阿拉伯数字）
+- 选哪种由你的风格决定（如复古风用 {numberCn} 写"其 壹"，现代风用 {numberPad2} 写"NO. 01"）
+
+排版规范（必须严格遵守，让模板与其他内置模板视觉一致）：
+- **字号**：h1=24px，h2=18px，h3=16px，body=16px，quote=15px，cover=15px，footer=14px
+- **加粗**：仅 h1 / h2 / h3 标题加粗，其他全部不加粗
+- **行高**：标题 1.5，正文 1.9，其他 1.8 左右
+- **首行缩进**：仅 body 块加 text-indent:2em
+- **左右间距**：wrapper 自带 padding:24px 22px，块本身不要再加左右 margin
+- **引言风格**：cover 字号同正文、不加粗、italic、颜色稍淡
+
+字号特例豁免（重要）：
+- 上面字号规范是默认值。如果某个块是参考图风格的"招牌"（比如报纸报头大字、海报巨型标题），**允许在那一个块上突破规范**做成更大更夸张
+- 但每套模板最多 1–2 个块这样豁免，其余仍走默认
+
+额外要求：
+1. 提取参考图的主色调、字体层次和装饰风格（不要改字号/加粗规则）
+2. 保持手机端单栏布局（不要分两列）
+3. 所有样式内联，不能用 <style> 标签
+4. **所有容器/包装类标签必须用 <section>，不要用 <div>**（公众号粘贴时会过滤掉 <div> 连同其样式）
+5. 只输出 JSON，不要任何说明文字`
+];
+
+/* ================================================
+   全局状态
+   ================================================ */
+let g = {
+  blocks:[], template:1,
+  colors:{...TMPL_PRESETS[1][0]},
+  activePreset:0,
+  uid:0,
+  // 自定义模板列表（"加号"逻辑）：可以同时存多个，自由切换
+  // 每项：{ id:'custom_<时间戳>', name, version, wrapper, blocks }
+  customTemplates:[],
+  // 当前选中的自定义模板 id；null 表示用 g.template 指向的内置模板
+  activeCustomId:null,
+  paper:'grid-mid',
+  focusedBid:null,
+  selectedBids:new Set(),
+};
+function nextId(){return 'b'+(++g.uid)}
+function makeBlock(type){return{id:nextId(),type,content:'',images:[],caption:''}}
+
+/* ================================================
+   工具
+   ================================================ */
+function toast(msg,ms=2400){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),ms);
+}
+
+function hexToRgba(hex,a){
+  let h=(hex||'#000').replace('#','');
+  if(h.length===3)h=h.split('').map(c=>c+c).join('');
+  const r=parseInt(h.slice(0,2),16),g2=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);
+  return `rgba(${r},${g2},${b},${a})`;
+}
+
+/* ================================================
+   配色系统
+   ================================================ */
+function syncColorUI(){
+  const c=g.colors;
+  const sv=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||'#ffffff'};
+  const sh=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=(v||'').toUpperCase()};
+  sv('c-primary',c.primary);sh('h-primary',c.primary);
+  sv('c-secondary',c.secondary);sh('h-secondary',c.secondary);
+  sv('c-accent',c.accent);sh('h-accent',c.accent);
+  // accent2 仅在配色里有这个字段时才显示与同步（目前主要是报纸用）
+  const row2=document.getElementById('cp-row-accent2');
+  const badgeSec=document.getElementById('badge-secondary');
+  if(c.accent2){
+    sv('c-accent2',c.accent2);sh('h-accent2',c.accent2);
+    if(row2)row2.style.display='';
+    // 有装饰色时辅色占比降到 20%（剩 5% 给装饰）
+    if(badgeSec)badgeSec.textContent='20%';
+  }else{
+    if(row2)row2.style.display='none';
+    if(badgeSec)badgeSec.textContent='25%';
+  }
+  updateDots();
+  syncPresetBtns();
+}
+
+function updateDots(){
+  const c=g.colors;
+  const cols=[c.primary,c.secondary,c.accent];
+  document.getElementById('color-dots').innerHTML=cols.map(col=>`<span class="cdot" style="background:${col}"></span>`).join('');
+}
+
+function syncPresetBtns(){
+  // 自定义模式：只显示一个"自定义"按钮（指向该模板的初始 colors）
+  const activeCustom=g.activeCustomId?g.customTemplates.find(x=>x.id===g.activeCustomId):null;
+  if(activeCustom){
+    const btn0=document.getElementById('preset-0');
+    const btn1=document.getElementById('preset-1');
+    if(btn0){btn0.textContent='自定义';btn0.style.display='';btn0.classList.toggle('active',g.activePreset===0)}
+    if(btn1){btn1.style.display='none'}
+    return;
+  }
+  const presets=TMPL_PRESETS[g.template]||[];
+  ['preset-0','preset-1'].forEach((id,i)=>{
+    const btn=document.getElementById(id);
+    if(!btn)return;
+    if(presets[i]){btn.textContent=presets[i].label;btn.style.display=''}
+    else btn.style.display='none';
+    btn.classList.toggle('active',g.activePreset===i);
+  });
+}
+
+function applyPreset(idx){
+  // 自定义模式：恢复到该模板的初始配色
+  const activeCustom=g.activeCustomId?g.customTemplates.find(x=>x.id===g.activeCustomId):null;
+  if(activeCustom){
+    if(idx!==0||!activeCustom.initialColors)return;
+    pushHistory();
+    activeCustom.colors={...activeCustom.initialColors};
+    g.colors={...activeCustom.initialColors};
+    g.activePreset=0;
+    syncColorUI();updatePreview();
+    return;
+  }
+  const p=(TMPL_PRESETS[g.template]||[])[idx];
+  if(!p)return;
+  pushHistory();
+  g.colors={...p};g.activePreset=idx;
+  if(p.paper){
+    g.paper=p.paper;
+    document.querySelectorAll('.paper-tab').forEach(b=>b.classList.toggle('active',b.dataset.paper===g.paper));
+  }
+  syncColorUI();updatePreview();
+}
+
+function wireColor(inputId,hexId,key){
+  const el=document.getElementById(inputId);if(!el)return;
+  // 拖颜色（input 事件）→ 实时预览，但不入历史
+  el.addEventListener('input',()=>{
+    g.colors[key]=el.value;
+    // 自定义模式下，颜色改动同步进 activeCustom.colors（让 tab 切换/恢复初始 都能记住）
+    const activeCustom=g.activeCustomId?g.customTemplates.find(x=>x.id===g.activeCustomId):null;
+    if(activeCustom){
+      activeCustom.colors=activeCustom.colors||{};
+      activeCustom.colors[key]=el.value;
+    }
+    document.getElementById(hexId).textContent=el.value.toUpperCase();
+    g.activePreset=-1;
+    syncPresetBtns();updateDots();updatePreview();
+  });
+  // 颜色 picker 关闭（change 事件）→ 落一条历史；这样一次"调色"只占一条撤销
+  // 注意：要在 input 之前抓 snapshot，所以用 mousedown/focus 抓"调色前"
+  let beforeSnap=null;
+  el.addEventListener('focus',()=>{beforeSnap=snapshot()});
+  el.addEventListener('change',()=>{
+    if(!beforeSnap)return;
+    if(historyStack[historyStack.length-1]!==beforeSnap){
+      historyStack.push(beforeSnap);
+      if(historyStack.length>HISTORY_LIMIT)historyStack.shift();
+      redoStack.length=0;
+      refreshUndoRedoUI();
+    }
+    beforeSnap=null;
+  });
+}
+wireColor('c-primary','h-primary','primary');
+wireColor('c-secondary','h-secondary','secondary');
+wireColor('c-accent','h-accent','accent');
+wireColor('c-accent2','h-accent2','accent2');
+
+document.getElementById('reset-colors').onclick=()=>{applyPreset(g.activePreset>=0?g.activePreset:0)};
+document.getElementById('preset-0').onclick=()=>applyPreset(0);
+document.getElementById('preset-1').onclick=()=>applyPreset(1);
+
+document.getElementById('btn-color').addEventListener('click',e=>{e.stopPropagation();document.getElementById('color-panel').classList.toggle('open')});
+document.addEventListener('click',e=>{if(!e.target.closest('#color-panel')&&!e.target.closest('#btn-color'))document.getElementById('color-panel').classList.remove('open')});
+
+/* ================================================
+   模板切换（含自定义）
+   ================================================ */
+// 内置模板 tab：1/2/3
+document.querySelectorAll('.ttab[data-t]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const t=+btn.dataset.t;
+    switchToBuiltin(t);
+  });
+});
+
+// 切到内置模板
+function switchToBuiltin(t){
+  g.template=t;
+  g.activeCustomId=null;
+  g.activePreset=0;
+  const preset=TMPL_PRESETS[t][0];
+  g.colors={...preset};
+  if(preset.paper){
+    g.paper=preset.paper;
+  }
+  refreshTemplateTabsUI();
+  syncColorUI();updatePaperTabsVisibility();updatePreview();
+}
+
+// 切到某个自定义模板
+function switchToCustom(id){
+  const tpl=g.customTemplates.find(c=>c.id===id);
+  if(!tpl)return;
+  g.activeCustomId=id;
+  // 同步该模板的当前配色到 g.colors（如果有定义）
+  if(tpl.colors){
+    g.colors={...tpl.colors};
+    // 判断当前是否处于"初始配色"，决定 activePreset 是否点亮
+    const ic=tpl.initialColors||{};
+    const isInitial=ic.primary===tpl.colors.primary&&ic.secondary===tpl.colors.secondary&&ic.accent===tpl.colors.accent;
+    g.activePreset=isInitial?0:-1;
+  }else{
+    g.activePreset=-1;
+  }
+  refreshTemplateTabsUI();
+  syncColorUI();
+  updatePaperTabsVisibility();updatePreview();
+}
+
+// 重新渲染顶部 tab 区（高亮 + 自定义列表）
+function refreshTemplateTabsUI(){
+  // 内置 tab 高亮
+  document.querySelectorAll('.ttab[data-t]').forEach(b=>{
+    const isActive=!g.activeCustomId&&+b.dataset.t===g.template;
+    b.classList.toggle('active',isActive);
+  });
+  // 自定义 tab：从 g.customTemplates 重建
+  const host=document.getElementById('custom-tabs-host');
+  host.innerHTML='';
+  g.customTemplates.forEach(tpl=>{
+    const btn=document.createElement('button');
+    btn.className='ttab ttab-custom'+(g.activeCustomId===tpl.id?' active':'');
+    btn.title=tpl.name;
+    // 名称太长截断，title 提供完整名
+    btn.textContent=tpl.name.length>6?tpl.name.slice(0,6)+'…':tpl.name;
+    btn.addEventListener('click',e=>{
+      if(e.target.classList.contains('ttab-x'))return;
+      switchToCustom(tpl.id);
+    });
+    const x=document.createElement('button');
+    x.className='ttab-x';x.textContent='×';x.title='删除这个自定义模板';
+    x.addEventListener('click',e=>{
+      e.stopPropagation();
+      removeCustomTemplate(tpl.id);
+    });
+    btn.appendChild(x);
+    host.appendChild(btn);
+  });
+}
+
+// 删除某个自定义模板（如果当前正在用，回退到杂志）
+// 注意：上传/删除不计入撤销栈（撤销不应该撤销文件操作）
+function removeCustomTemplate(id){
+  g.customTemplates=g.customTemplates.filter(c=>c.id!==id);
+  if(g.activeCustomId===id){
+    switchToBuiltin(1);
+  }else{
+    refreshTemplateTabsUI();
+  }
+}
+
+// "＋" 按钮：打开上传弹窗
+document.getElementById('btn-add-custom').addEventListener('click',()=>{
+  openCustomModal();
+});
+
+function updatePaperTabsVisibility(){
+  // 仅在便签内置模板下显示纸张选择，自定义模板不显示
+  const show=!g.activeCustomId&&g.template===3;
+  document.getElementById('paper-group').style.display=show?'flex':'none';
+  document.getElementById('paper-spacer').style.display=show?'':'none';
+}
+document.querySelectorAll('.paper-tab').forEach(btn=>{
+  btn.onclick=()=>{
+    g.paper=btn.dataset.paper;
+    document.querySelectorAll('.paper-tab').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    updatePreview();
+  };
+});
+
+/* ================================================
+   高亮
+   ================================================ */
+document.getElementById('btn-hl').onclick=()=>{
+  const sel=window.getSelection();
+  if(!sel||sel.rangeCount===0||sel.isCollapsed){toast('先选中文字再高亮');return}
+  const range=sel.getRangeAt(0);
+  const anc=range.commonAncestorContainer;
+  const el=anc.nodeType===3?anc.parentElement:anc;
+  const blockEl=el.closest('[data-bid]');
+  if(!blockEl){toast('在编辑器内选中文字才能高亮');return}
+  const rgba=hexToRgba(g.colors.accent,.28);
+  try{
+    const mark=document.createElement('mark');
+    mark.style.cssText=`background:linear-gradient(transparent 10%,${rgba} 10%,${rgba} 88%,transparent 88%);padding:0 2px;`;
+    range.surroundContents(mark);
+  }catch(e){
+    const frag=range.extractContents();
+    const mark=document.createElement('mark');
+    mark.style.cssText=`background:linear-gradient(transparent 10%,${rgba} 10%,${rgba} 88%,transparent 88%);padding:0 2px;`;
+    mark.appendChild(frag);range.insertNode(mark);
+  }
+  sel.removeAllRanges();syncContent(blockEl.dataset.bid);updatePreview();
+};
+
+document.getElementById('btn-unhl').onclick=()=>{
+  const sel=window.getSelection();
+  if(!sel||sel.rangeCount===0){toast('把光标放到高亮文字里再点取消');return}
+  const range=sel.getRangeAt(0);
+  const anc=range.commonAncestorContainer;
+  const el=anc.nodeType===3?anc.parentElement:anc;
+  const mark=el.closest('mark');
+  if(!mark){toast('光标不在高亮文字里');return}
+  const parent=mark.parentNode;
+  while(mark.firstChild)parent.insertBefore(mark.firstChild,mark);
+  parent.removeChild(mark);
+  const be=parent.closest('[data-bid]');
+  if(be){syncContent(be.dataset.bid);updatePreview()}
+};
+
+/* ================================================
+   内容同步
+   ================================================ */
+function syncContent(bid){
+  const blk=g.blocks.find(b=>b.id===bid);if(!blk)return;
+  const el=document.querySelector(`[data-bid="${bid}"]`);if(el)blk.content=el.innerHTML;
+}
+function syncAll(){g.blocks.forEach(b=>{if(b.type!=='image'&&b.type!=='divider')syncContent(b.id)})}
+
+/* ================================================
+   块管理
+   ================================================ */
+function addBlock(type){
+  pushHistory();
+  const blk=makeBlock(type);
+  // 优先在当前 focused 块之后插入
+  const idx=g.blocks.findIndex(b=>b.id===g.focusedBid);
+  if(idx>=0){
+    g.blocks.splice(idx+1,0,blk);
+    rebuildBlocksList();
+  }else{
+    g.blocks.push(blk);
+    mountBlock(blk);
+  }
+  g.focusedBid=blk.id;
+  refreshFocusUI();
+  updatePreview();
+  setTimeout(()=>{
+    const el=document.querySelector(`[data-wrapper-id="${blk.id}"]`);
+    if(el){
+      el.scrollIntoView({behavior:'smooth',block:'nearest'});
+      const edit=el.querySelector('[contenteditable]');
+      if(edit)edit.focus();
+    }
+  },50);
+}
+
+function deleteBlock(bid){
+  pushHistory();
+  g.blocks=g.blocks.filter(b=>b.id!==bid);
+  const el=document.querySelector(`[data-wrapper-id="${bid}"]`);if(el)el.remove();
+  if(g.focusedBid===bid)g.focusedBid=null;
+  g.selectedBids.delete(bid);
+  updatePreview();
+}
+
+/* 多选切换：点 ✓ 加入/移出多选集合 */
+function toggleSelect(bid){
+  if(g.selectedBids.has(bid))g.selectedBids.delete(bid);
+  else g.selectedBids.add(bid);
+  refreshFocusUI();
+}
+
+/* 删除：当前块若在多选集合里，则批量删除所有选中；否则只删它 */
+function deleteBlocksMulti(bid){
+  if(g.selectedBids.has(bid)&&g.selectedBids.size>1){
+    pushHistory();
+    const ids=new Set(g.selectedBids);
+    g.blocks=g.blocks.filter(b=>!ids.has(b.id));
+    g.selectedBids.clear();
+    if(ids.has(g.focusedBid))g.focusedBid=null;
+    rebuildBlocksList();updatePreview();
+  }else{
+    deleteBlock(bid);
+  }
+}
+
+/* 复制：当前块若在多选集合里，则批量复制（复制结果插入到最后一个被选中块的下方）；否则只复制它 */
+function duplicateBlocks(bid){
+  pushHistory();
+  syncAll();
+  const targetIds=(g.selectedBids.has(bid)&&g.selectedBids.size>1)
+    ? g.blocks.map(b=>b.id).filter(id=>g.selectedBids.has(id))  // 保持文档顺序
+    : [bid];
+  // 找出最后一个被选中块的索引，新块插在其后
+  const lastIdx=Math.max(...targetIds.map(id=>g.blocks.findIndex(b=>b.id===id)));
+  const newBlocks=targetIds.map(id=>{
+    const src=g.blocks.find(b=>b.id===id);
+    return cloneBlock(src);
+  });
+  g.blocks.splice(lastIdx+1,0,...newBlocks);
+  // 复制后选中新块，方便继续操作
+  g.selectedBids=new Set(newBlocks.map(b=>b.id));
+  rebuildBlocksList();updatePreview();
+  toast(newBlocks.length>1?`已复制 ${newBlocks.length} 个块`:'已复制');
+}
+
+/* 深拷贝一个块，给新 id */
+function cloneBlock(src){
+  const c=JSON.parse(JSON.stringify(src));
+  c.id=nextId();
+  // 图片块的 url 直接复用（同一张图）
+  return c;
+}
+
+/* 行内格式：bold / underline / italic
+   逻辑：
+   1) 找到该块的 contenteditable 元素
+   2) 如果当前选区在该元素内，直接 execCommand
+   3) 如果选区不在（用户点了按钮但没选中文字），focus 到元素并对全文执行（再次点击会取消，等价于"切换"）
+*/
+function applyInlineFormat(bid,cmd){
+  const wrapper=document.querySelector(`[data-wrapper-id="${bid}"]`);
+  if(!wrapper)return;
+  // 优先选 caption 之外的主编辑框
+  const eds=wrapper.querySelectorAll('[contenteditable]');
+  let edit=null;
+  for(const e of eds){if(!e.closest('.blk-caption')){edit=e;break}}
+  if(!edit)edit=eds[0];
+  if(!edit)return;
+  pushHistory();
+  // 如果当前选区不在编辑框里，focus 并全选
+  const sel=window.getSelection();
+  let needRefocus=true;
+  if(sel&&sel.rangeCount>0){
+    const r=sel.getRangeAt(0);
+    if(edit.contains(r.commonAncestorContainer))needRefocus=false;
+  }
+  if(needRefocus){
+    edit.focus();
+    const range=document.createRange();
+    range.selectNodeContents(edit);
+    sel.removeAllRanges();sel.addRange(range);
+  }
+  document.execCommand(cmd,false,null);
+  // 同步内容到模型
+  syncContent(bid);
+  updatePreview();
+}
+
+function changeType(bid,newType){
+  // 多选模式：批量改所有选中块的类型
+  if(g.selectedBids.has(bid)&&g.selectedBids.size>1){
+    pushHistory();
+    syncAll();
+    const ids=new Set(g.selectedBids);
+    g.blocks.forEach(b=>{if(ids.has(b.id)&&b.type!=='image'&&b.type!=='divider')b.type=newType});
+    rebuildBlocksList();updatePreview();
+    return;
+  }
+  const blk=g.blocks.find(b=>b.id===bid);if(!blk)return;
+  pushHistory();
+  syncContent(bid);blk.type=newType;
+  const wrapper=document.querySelector(`[data-wrapper-id="${bid}"]`);if(!wrapper)return;
+  const typeBtn=wrapper.querySelector('.blk-type-btn');
+  if(typeBtn)typeBtn.textContent=TYPE_META[newType]?.label||'?';
+  const bodyEl=wrapper.querySelector('.blk-body');bodyEl.innerHTML='';
+  bodyEl.appendChild(buildBlockBody(blk));updatePreview();
+}
+
+function mountBlock(blk){
+  const list=document.getElementById('blocks-list');
+  list.appendChild(buildBlockWrapper(blk));
+}
+
+function buildBlockWrapper(blk){
+  const wrapper=document.createElement('div');
+  wrapper.className='blk-wrap';wrapper.setAttribute('data-wrapper-id',blk.id);
+  // 拖拽手柄（最左，hover 出现）
+  const handle=document.createElement('div');
+  handle.className='blk-handle';handle.textContent='⋮⋮';handle.title='拖拽排序';
+  handle.draggable=true;
+  attachDragHandlers(handle,wrapper,blk.id);
+  // 主区：纵向两行
+  const main=document.createElement('div');main.className='blk-main';
+  // 第一行：[类型] [输入框/图片/分隔线] [✓ 多选] [⎘ 复制] [×]
+  const rowTop=document.createElement('div');rowTop.className='blk-row-top';
+  const tb=document.createElement('button');
+  tb.className='blk-type-btn';tb.textContent=TYPE_META[blk.type]?.label||'?';
+  tb.title='切换类型';tb.onclick=e=>{e.stopPropagation();showTypeMenu(blk.id,tb)};
+  const body=document.createElement('div');body.className='blk-body';
+  body.appendChild(buildBlockBody(blk));
+  // 多选勾选按钮：始终显示；选中时高亮
+  const ck=document.createElement('button');
+  ck.className='blk-check-btn';ck.textContent='✓';
+  ck.title='多选（再次点击取消）';
+  if(g.selectedBids.has(blk.id))ck.classList.add('on');
+  ck.onclick=e=>{e.stopPropagation();toggleSelect(blk.id)};
+  // 复制按钮：始终显示；如果当前块在多选里，复制所有选中
+  const cp=document.createElement('button');
+  cp.className='blk-copy-btn';cp.textContent='+';
+  cp.title='复制（如已多选则批量复制）';
+  cp.onclick=e=>{e.stopPropagation();duplicateBlocks(blk.id)};
+  // 删除按钮：如果当前块在多选里，删除所有选中
+  const db=document.createElement('button');
+  db.className='blk-del-btn';db.textContent='×';db.title='删除（如已多选则批量删除）';
+  db.onclick=e=>{e.stopPropagation();deleteBlocksMulti(blk.id)};
+  rowTop.append(tb,body,ck,cp,db);
+  main.appendChild(rowTop);
+  // 第二行：B / U / I（hover 才显示，文字类块才有）
+  if(blk.type!=='image'&&blk.type!=='divider'){
+    const rowFmt=document.createElement('div');rowFmt.className='blk-row-fmt';
+    const mkFmt=(cls,cmd,key,label)=>{
+      const b=document.createElement('button');
+      b.className='blk-fmt-btn '+cls;b.textContent='B';b.title=`${label}（Ctrl+${key.toUpperCase()}）`;
+      b.onmousedown=e=>{e.preventDefault()};// 防止失焦
+      b.onclick=e=>{e.stopPropagation();applyInlineFormat(blk.id,cmd)};
+      return b;
+    };
+    rowFmt.append(
+      mkFmt('b','bold','b','加粗'),
+      mkFmt('u','underline','u','下划线'),
+      mkFmt('i','italic','i','斜体'),
+    );
+    main.appendChild(rowFmt);
+  }
+  // 点击块整体设置为 focused
+  wrapper.addEventListener('mousedown',e=>{
+    if(e.target.closest('.blk-handle'))return;
+    g.focusedBid=blk.id;
+    refreshFocusUI();
+  });
+  wrapper.append(handle,main);
+  // 选中态
+  if(g.selectedBids.has(blk.id))wrapper.classList.add('selected');
+  if(g.focusedBid===blk.id)wrapper.classList.add('focused');
+  return wrapper;
+}
+
+function rebuildBlocksList(){
+  const list=document.getElementById('blocks-list');
+  list.innerHTML='';
+  g.blocks.forEach(b=>list.appendChild(buildBlockWrapper(b)));
+}
+
+function refreshFocusUI(){
+  document.querySelectorAll('.blk-wrap').forEach(w=>{
+    const id=w.getAttribute('data-wrapper-id');
+    w.classList.toggle('focused',id===g.focusedBid);
+    w.classList.toggle('selected',g.selectedBids.has(id));
+    const ck=w.querySelector('.blk-check-btn');
+    if(ck)ck.classList.toggle('on',g.selectedBids.has(id));
+  });
+}
+
+function buildBlockBody(blk){
+  if(blk.type==='divider'){const d=document.createElement('div');d.className='blk-divider-vis';d.textContent='分隔线';return d}
+  if(blk.type==='image')return buildImgBody(blk);
+  const meta=TYPE_META[blk.type]||TYPE_META.body;
+  const div=document.createElement('div');
+  div.contentEditable='true';div.className=meta.editCls;
+  div.setAttribute('data-bid',blk.id);div.setAttribute('data-ph',meta.ph||'输入内容…');
+  div.innerHTML=blk.content||'';
+  let snapBeforeEdit=null;
+  let edited=false;
+  div.addEventListener('focus',()=>{
+    g.focusedBid=blk.id;refreshFocusUI();
+    snapBeforeEdit=snapshot();
+    edited=false;
+  });
+  div.addEventListener('blur',()=>{
+    if(edited&&snapBeforeEdit){
+      // 把"编辑前"快照直接入栈
+      if(historyStack[historyStack.length-1]!==snapBeforeEdit){
+        historyStack.push(snapBeforeEdit);
+        if(historyStack.length>HISTORY_LIMIT)historyStack.shift();
+        redoStack.length=0;
+        refreshUndoRedoUI();
+      }
+    }
+    snapBeforeEdit=null;edited=false;
+  });
+  div.addEventListener('input',()=>{edited=true;syncContent(blk.id);updatePreview()});
+  if(['h1','h2','h3'].includes(blk.type))div.addEventListener('keydown',e=>{if(e.key==='Enter')e.preventDefault()});
+  return div;
+}
+
+/* ================================================
+   图片块（多图 + 图注）
+   ================================================ */
+function buildImgBody(blk){
+  const wrap=document.createElement('div');
+  if(!blk.images||blk.images.length===0){
+    const div=document.createElement('div');
+    div.className='blk-img empty';
+    div.innerHTML=`<div style="font-size:20px;margin-bottom:5px">🖼</div>`
+                 +`<div style="font-size:12px;color:#999">点击上传图片</div>`
+                 +`<div style="font-size:11px;color:#ccc;margin-top:4px">支持单图 / 多图，最多 9 张</div>`;
+    div.onclick=()=>pickImages(blk,true);
+    wrap.appendChild(div);
+    return wrap;
+  }
+  const box=document.createElement('div');
+  box.className='blk-img filled';
+  const grid=document.createElement('div');
+  const n=blk.images.length;
+  // flex 自动换行，单图加 g1 类做居中
+  grid.className='blk-img-grid'+(n===1?' g1':'');
+  blk.images.forEach((img,i)=>{
+    const cell=document.createElement('div');
+    cell.className='blk-img-cell'+(img.uploading?' uploading':'');
+    cell.innerHTML=`<img src="${img.local||img.url||''}" alt="">`
+                  +`<button class="blk-img-cell-del" title="删除这张">×</button>`;
+    cell.querySelector('.blk-img-cell-del').onclick=e=>{
+      e.stopPropagation();
+      pushHistory();
+      blk.images.splice(i,1);
+      refreshImg(blk);updatePreview();
+    };
+    cell.onclick=()=>pickImages(blk,false);
+    grid.appendChild(cell);
+  });
+  box.appendChild(grid);
+  const acts=document.createElement('div');
+  acts.className='blk-img-actions';
+  const allDone=blk.images.every(i=>i.url);
+  acts.innerHTML=`<span style="font-size:11px;color:${allDone?'#16a34a':'#d97706'};align-self:center">${allDone?'✓ 全部已上传':'⏳ 上传中…'}</span>`
+                +`<button class="blk-img-actbtn" data-act="add">＋ 添加图片</button>`
+                +`<button class="blk-img-actbtn" data-act="replace">替换全部</button>`
+                +`<button class="blk-img-actbtn" data-act="clear">清空</button>`;
+  acts.querySelector('[data-act=add]').onclick=()=>pickImages(blk,false);
+  acts.querySelector('[data-act=replace]').onclick=()=>pickImages(blk,true);
+  acts.querySelector('[data-act=clear]').onclick=()=>{pushHistory();blk.images=[];refreshImg(blk);updatePreview()};
+  box.appendChild(acts);
+  // 图注
+  const cap=document.createElement('div');
+  cap.className='blk-caption';
+  const capEdit=document.createElement('div');
+  capEdit.contentEditable='true';
+  capEdit.setAttribute('data-bid',blk.id);
+  capEdit.setAttribute('data-cap','1');
+  capEdit.innerHTML=blk.caption||'';
+  let capSnap=null,capEdited=false;
+  capEdit.addEventListener('focus',()=>{capSnap=snapshot();capEdited=false});
+  capEdit.addEventListener('input',()=>{blk.caption=capEdit.innerHTML;capEdited=true;updatePreview()});
+  capEdit.addEventListener('blur',()=>{
+    if(capEdited&&capSnap&&historyStack[historyStack.length-1]!==capSnap){
+      historyStack.push(capSnap);
+      if(historyStack.length>HISTORY_LIMIT)historyStack.shift();
+      redoStack.length=0;refreshUndoRedoUI();
+    }
+    capSnap=null;capEdited=false;
+  });
+  cap.appendChild(capEdit);
+  box.appendChild(cap);
+  wrap.appendChild(box);
+  return wrap;
+}
+
+function refreshImg(blk){
+  const wrapper=document.querySelector(`[data-wrapper-id="${blk.id}"] .blk-body`);if(!wrapper)return;
+  wrapper.innerHTML='';wrapper.appendChild(buildImgBody(blk));
+}
+
+/* 图片上传校验：单张大小、总数量、文件类型 */
+const MAX_IMAGE_SIZE = 3 * 1024 * 1024; // 3 MB（imgBB 免费额度限制）
+const MAX_IMAGES_PER_BLOCK = 9;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg','image/png','image/webp','image/gif','image/bmp'];
+
+function pickImages(blk,replace){
+  const input=document.createElement('input');
+  input.type='file';input.accept='image/*';input.multiple=true;
+  input.onchange=async e=>{
+    let files=Array.from(e.target.files||[]);if(files.length===0)return;
+    // 1) 文件类型校验：剔除非图片，提示
+    const wrongType=files.filter(f=>!ALLOWED_IMAGE_TYPES.includes(f.type));
+    if(wrongType.length>0){
+      const names=wrongType.slice(0,2).map(f=>f.name).join('、');
+      toast(`不支持的格式：${names}${wrongType.length>2?' 等':''}（仅支持 JPG / PNG / WebP / GIF / BMP）`,4000);
+      files=files.filter(f=>ALLOWED_IMAGE_TYPES.includes(f.type));
+      if(files.length===0)return;
+    }
+    // 2) 单张大小校验：超过 3MB 的跳过并提示
+    const tooBig=files.filter(f=>f.size>MAX_IMAGE_SIZE);
+    if(tooBig.length>0){
+      const names=tooBig.slice(0,2).map(f=>`${f.name}(${(f.size/1024/1024).toFixed(1)}MB)`).join('、');
+      toast(`图片超过 3MB：${names}${tooBig.length>2?' 等':''}（请压缩后再传）`,4500);
+      files=files.filter(f=>f.size<=MAX_IMAGE_SIZE);
+      if(files.length===0)return;
+    }
+    // 3) 数量校验：合并后超过 9 张就截断
+    const currentCount=replace?0:(blk.images?blk.images.length:0);
+    const slots=MAX_IMAGES_PER_BLOCK-currentCount;
+    if(slots<=0){toast(`一个图片块最多 ${MAX_IMAGES_PER_BLOCK} 张，请先删除几张再传`,3500);return}
+    if(files.length>slots){
+      toast(`本块只能再加 ${slots} 张（每块上限 ${MAX_IMAGES_PER_BLOCK}），多余的已忽略`,3500);
+      files=files.slice(0,slots);
+    }
+    pushHistory();
+    if(replace)blk.images=[];
+    const startIdx=blk.images.length;
+    files.forEach(()=>blk.images.push({local:'',url:null,uploading:true}));
+    refreshImg(blk);updatePreview();
+    for(let i=0;i<files.length;i++){
+      const idx=startIdx+i;
+      const file=files[i];
+      const reader=new FileReader();
+      await new Promise(res=>{
+        reader.onload=ev=>{
+          if(!blk.images[idx])return res();
+          blk.images[idx].local=ev.target.result;
+          refreshImg(blk);updatePreview();
+          res();
+        };
+        reader.readAsDataURL(file);
+      });
+      try{
+        const url=await uploadImgBB(file);
+        if(blk.images[idx]){blk.images[idx].url=url;blk.images[idx].uploading=false}
+        refreshImg(blk);updatePreview();
+      }catch(err){
+        if(blk.images[idx])blk.images[idx].uploading=false;
+        refreshImg(blk);
+        toast(`图片上传失败：${err.message||'网络异常'}（稍后再试或换张图）`,4000);
+      }
+    }
+    if(blk.images.every(i=>i.url))toast('图片上传完成 ✓');
+  };
+  input.click();
+}
+
+async function uploadImgBB(file){
+  const fd=new FormData();fd.append('image',file);fd.append('expiration',IMGBB_TTL);
+  const res=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`,{method:'POST',body:fd});
+  const json=await res.json();if(!json.success)throw new Error(json.error?.message||'failed');
+  return json.data.url;
+}
+
+/* ================================================
+   类型菜单
+   ================================================ */
+let activeMenu=null;
+function showTypeMenu(bid,anchor){
+  closeTypeMenu();
+  const menu=document.createElement('div');menu.id='type-menu';
+  TYPE_ORDER.forEach(t=>{
+    const m=TYPE_META[t];const btn=document.createElement('button');btn.className='type-opt';
+    btn.textContent=`${m.label}  ${m.ph}`;btn.onclick=()=>{changeType(bid,t);closeTypeMenu()};
+    menu.appendChild(btn);
+  });
+  document.body.appendChild(menu);activeMenu=menu;
+  const r=anchor.getBoundingClientRect();menu.style.top=(r.bottom+4)+'px';menu.style.left=r.left+'px';
+  requestAnimationFrame(()=>{const mr=menu.getBoundingClientRect();if(mr.right>window.innerWidth-8)menu.style.left=(window.innerWidth-mr.width-8)+'px'});
+  setTimeout(()=>document.addEventListener('click',closeTypeMenu,{once:true}),0);
+}
+function closeTypeMenu(){if(activeMenu){activeMenu.remove();activeMenu=null}}
+
+document.querySelectorAll('.add-btn').forEach(btn=>btn.onclick=()=>addBlock(btn.dataset.type));
+
+/* ================================================
+   拖拽调整预览大小
+   ================================================ */
+(()=>{
+  const handle=document.getElementById('resize-handle');
+  const editor=document.getElementById('editor-panel');
+  const main=document.getElementById('main');
+  let dragging=false,startX=0,startW=0;
+  handle.addEventListener('mousedown',e=>{
+    dragging=true;startX=e.clientX;startW=editor.getBoundingClientRect().width;
+    handle.classList.add('dragging');document.body.style.cursor='col-resize';document.body.style.userSelect='none';
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!dragging)return;
+    const totalW=main.getBoundingClientRect().width;
+    const newW=Math.max(300,Math.min(totalW-380,startW+(e.clientX-startX)));
+    editor.style.width=newW+'px';
+  });
+  document.addEventListener('mouseup',()=>{
+    if(!dragging)return;dragging=false;
+    handle.classList.remove('dragging');document.body.style.cursor='';document.body.style.userSelect='';
+  });
+})();
+
+/* ================================================
+   Markdown 导入
+   ================================================ */
+document.getElementById('btn-import-md').onclick=()=>document.getElementById('md-file-input').click();
+document.getElementById('md-file-input').onchange=e=>{
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{importMarkdown(ev.target.result);e.target.value=''};
+  reader.readAsText(file,'utf-8');
+};
+
+function importMarkdown(text){
+  pushHistory();
+  // 保留 cover 和 footer，仅替换正文相关块
+  const keepCover=g.blocks.find(b=>b.type==='cover');
+  const keepFooter=g.blocks.find(b=>b.type==='footer');
+  g.blocks=[];
+  document.getElementById('blocks-list').innerHTML='';
+  if(keepCover){g.blocks.push(keepCover);mountBlock(keepCover)}
+  const lines=text.split('\n');let buf='';
+  const flush=()=>{
+    if(!buf.trim())return;
+    const blk=makeBlock('body');blk.content=mdInline(buf.trim());
+    g.blocks.push(blk);mountBlock(blk);buf='';
+  };
+  lines.forEach(line=>{
+    if(/^### /.test(line)){flush();const b=makeBlock('h3');b.content=line.slice(4);g.blocks.push(b);mountBlock(b)}
+    else if(/^## /.test(line)){flush();const b=makeBlock('h2');b.content=line.slice(3);g.blocks.push(b);mountBlock(b)}
+    else if(/^# /.test(line)){flush();const b=makeBlock('h1');b.content=line.slice(2);g.blocks.push(b);mountBlock(b)}
+    else if(/^> /.test(line)){flush();const b=makeBlock('quote');b.content=line.slice(2);g.blocks.push(b);mountBlock(b)}
+    else if(/^---+$/.test(line.trim())||/^\*\*\*+$/.test(line.trim())){flush();const b=makeBlock('divider');g.blocks.push(b);mountBlock(b)}
+    else if(line.trim()===''){flush()}
+    else buf+=(buf?'\n':'')+line;
+  });
+  flush();
+  if(keepFooter){g.blocks.push(keepFooter);mountBlock(keepFooter)}
+  updatePreview();
+  const kept=(keepCover?1:0)+(keepFooter?1:0);
+  toast(`导入完成，正文 ${g.blocks.length-kept} 个块${kept?'，已保留封面/结尾':''}`);
+}
+
+function mdInline(text){
+  return text
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/`(.+?)`/g,'<code>$1</code>')
+    .replace(/==(.+?)==/g,'<mark>$1</mark>');
+}
+
+/* ================================================
+   自定义模板
+   ================================================ */
+function openCustomModal(){
+  document.getElementById('custom-modal').classList.add('open');
+  // 重置上传 zone 状态（避免显示上一次的"✓ XXX"）
+  const uz=document.getElementById('custom-upload-zone');
+  if(uz)uz.classList.remove('loaded');
+  const nm=document.getElementById('custom-tpl-name');
+  if(nm){nm.style.display='none';nm.textContent=''}
+  renderPrompt(0);
+}
+document.getElementById('close-custom').onclick=()=>document.getElementById('custom-modal').classList.remove('open');
+document.getElementById('custom-modal').addEventListener('click',e=>{if(e.target===document.getElementById('custom-modal'))document.getElementById('custom-modal').classList.remove('open')});
+
+let currentPromptTab=0;
+document.querySelectorAll('.ptab').forEach(btn=>{
+  btn.onclick=()=>{
+    currentPromptTab=+btn.dataset.pt;
+    document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');
+    renderPrompt(currentPromptTab);
+  };
+});
+function renderPrompt(idx){document.getElementById('prompt-text').textContent=PROMPTS[idx]}
+
+document.getElementById('copy-prompt-btn').onclick=async()=>{
+  try{await navigator.clipboard.writeText(PROMPTS[currentPromptTab]);toast('Prompt 已复制，去粘贴给 AI 吧')}
+  catch(e){toast('复制失败，请手动选中复制')}
+};
+
+// 上传自定义模板 JSON：追加进列表，自动切到新上传的那个
+const uploadZone=document.getElementById('custom-upload-zone');
+uploadZone.onclick=()=>{
+  const input=document.createElement('input');input.type='file';input.accept='.json,application/json';
+  input.onchange=e=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const tpl=JSON.parse(ev.target.result);
+        if(!tpl.blocks)throw new Error('缺少 blocks 字段');
+        // 注意：上传不计入撤销栈（撤销不应该撤销文件上传）
+        // 给模板生成 id，追加到列表
+        const id='custom_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+        // 配色：JSON 里 colors 字段 → initialColors（锁死） + colors（运行时可调）
+        // 如果 JSON 没给 colors，用一套中性默认值兜底
+        const dc=tpl.colors||{primary:'#1c1c1c',secondary:'#f5f5f5',accent:'#666666'};
+        const initialColors={primary:dc.primary,secondary:dc.secondary,accent:dc.accent};
+        const stored={
+          id,
+          name:tpl.name||'自定义模板',
+          version:tpl.version||1,
+          wrapper:tpl.wrapper||'',
+          blocks:tpl.blocks,
+          initialColors,
+          colors:{...initialColors},
+        };
+        g.customTemplates.push(stored);
+        g.activeCustomId=id;
+        // 用模板配色覆盖全局（让配色面板/各种 hexToRgba 都生效）
+        g.colors={...initialColors};
+        g.activePreset=0;
+        // UI 反馈
+        uploadZone.classList.add('loaded');
+        document.getElementById('custom-tpl-name').textContent='✓ '+stored.name;
+        document.getElementById('custom-tpl-name').style.display='block';
+        // 重建 tab 并关闭弹窗
+        refreshTemplateTabsUI();
+        syncColorUI();
+        updatePaperTabsVisibility();
+        document.getElementById('custom-modal').classList.remove('open');
+        updatePreview();toast(`自定义模板「${stored.name}」已加载 ✓`);
+      }catch(err){toast('文件解析失败：'+err.message,4000)}
+    };reader.readAsText(file,'utf-8');
+  };input.click();
+};
+
+/* ================================================
+   使用手册
+   ================================================ */
+document.getElementById('btn-manual').onclick=()=>document.getElementById('manual-modal').classList.add('open');
+document.getElementById('close-manual').onclick=()=>document.getElementById('manual-modal').classList.remove('open');
+document.getElementById('manual-modal').addEventListener('click',e=>{if(e.target===document.getElementById('manual-modal'))document.getElementById('manual-modal').classList.remove('open')});
+
+/* ================================================
+   HTML 输出
+   ================================================ */
+function processMarks(html,accentColor){
+  const rgba=hexToRgba(accentColor,.28);
+  return html
+    .replace(/<mark[^>]*>/g,`<span style="background:linear-gradient(transparent 10%,${rgba} 10%,${rgba} 88%,transparent 88%);padding:0 3px;">`)
+    .replace(/<\/mark>/g,'</span>');
+}
+
+/* 图片块通用渲染：单图撑满、多图按固定宽度 + 居中 + 自动换行 + 保持原比例（不裁剪） */
+function renderImage(blk,c,opt){
+  const imgs=(blk.images||[]).filter(i=>i.url||i.local);
+  if(imgs.length===0)return'';
+  const srcs=imgs.map(i=>i.url||i.local);
+  const radius=opt.radius||'4px';
+  const border=opt.border||'';
+  const padding=opt.padding||'0';
+  const margin=opt.margin||'18px 16px';
+  let inner='';
+  if(srcs.length===1){
+    // 单图：撑满容器宽度，保持原比例
+    inner=`<img src="${srcs[0]}" style="width:100%;height:auto;display:block;border-radius:${radius};" />`;
+  }else{
+    // 多图：每张 ~150px 宽，inline-block + text-align:center 实现居中 + 自动换行
+    // 行内 gap 用 margin（公众号兼容 flex 较差，gap 不可靠）
+    const W=opt.thumbW||150;
+    const cells=srcs.map(s=>
+      `<span style="display:inline-block;width:${W}px;margin:4px;vertical-align:top;">`
+      +`<img src="${s}" style="display:block;width:100%;height:auto;border-radius:${radius};" />`
+      +`</span>`
+    ).join('');
+    inner=`<section style="text-align:center;font-size:0;">${cells}</section>`;
+  }
+  // 图注：仅当用户实际填了内容时才输出
+  const cap=processMarks(blk.caption||'',c.accent).trim();
+  const capHtml=cap?`<p style="font-size:12px;color:${opt.capColor||'#888'};text-align:center;margin:8px 0 0;line-height:1.6;${opt.capStyle||''}">${cap}</p>`:'';
+  const frame=border?`border:${border};padding:${padding};`:`padding:${padding};`;
+  // 注意：必须用 <section>，公众号粘贴时会过滤掉 <div> 标签连同其内联样式
+  return`<section style="margin:${margin};${frame}background:transparent;text-align:center;">${inner}${capHtml}</section>`;
+}
+
+function generateHTML(forCopy=false){
+  syncAll();
+  const c=g.colors,t=g.template;
+  // 当前激活的自定义模板（如果有）
+  const activeCustom=g.activeCustomId?g.customTemplates.find(x=>x.id===g.activeCustomId):null;
+  let wrapStyle;
+  if(activeCustom){
+    wrapStyle=activeCustom.wrapper||'';
+    // 占位符替换：让 wrapper 里的 {primary}/{secondary}/{accent} 跟着配色面板变
+    wrapStyle=wrapStyle
+      .replace(/\{primary\}/g,c.primary||'#000')
+      .replace(/\{secondary\}/g,c.secondary||'#fff')
+      .replace(/\{accent\}/g,c.accent||'#666');
+    // 预览时去掉模板自带的 max-width，让它撑满预览面板
+    if(!forCopy)wrapStyle=wrapStyle.replace(/max-width:[^;]+;?/g,'')+'max-width:100%;';
+  }else if(t===3){
+    // 便签：楷体 + 格子纸背景，左右留白由 wrapper padding 提供
+    wrapStyle=[
+      `font-family:'STKaiti','KaiTi','楷体','FangSong','SimSun','Courier New',serif`,
+      paperBg(c,g.paper||'grid-mid'),
+      `max-width:${forCopy?'677px':'100%'}`,
+      `margin:0 auto`,`padding:24px 22px`,`line-height:1.85`,
+    ].join(';');
+  }else if(t===2){
+    // 报纸：宋体 + 米色旧报纸 + 暖光晕纹理
+    // padding-top:0 让封面深底色直接贴到顶部，没有米色露白
+    const tint=hexToRgba(c.accent,.08);
+    const tint2=hexToRgba(c.accent,.06);
+    wrapStyle=[
+      `font-family:'Noto Serif SC','Songti SC','SimSun','STSong',serif`,
+      `color:${c.primary}`,
+      `background-color:${c.secondary}`,
+      `background-image:radial-gradient(circle at 20% 80%,${tint} 0%,transparent 50%),radial-gradient(circle at 80% 20%,${tint2} 0%,transparent 50%)`,
+      `max-width:${forCopy?'677px':'100%'}`,
+      `margin:0 auto`,`padding:0 0 28px`,`line-height:1.85`,
+    ].join(';');
+  }else{
+    wrapStyle=[
+      `font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif`,
+      `background-color:${c.secondary}`,
+      `max-width:${forCopy?'677px':'100%'}`,
+      `margin:0 auto`,`padding:0`,`line-height:1.7`,
+    ].join(';');
+  }
+  // 渲染时维护 H1 计数器，让每个 H1 知道自己是第几个
+  let h1Idx=0;
+  const inner=g.blocks.map(blk=>{
+    const html=processMarks(blk.content||'',c.accent);
+    const h1Num=blk.type==='h1'?(++h1Idx):0;
+    return renderBlk(blk,t,c,html,activeCustom,h1Num);
+  }).join('');
+  return `<section style="${wrapStyle}">${inner}</section>`;
+}
+
+function renderBlk(blk,t,c,html,activeCustom,h1Num){
+  if(activeCustom)return tmplCustom(blk,html,activeCustom,h1Num);
+  if(t===1)return tmpl1(blk,c,html,h1Num);
+  if(t===2)return tmpl2(blk,c,html,h1Num);
+  if(t===3)return tmpl3(blk,c,html,h1Num);
+  return '';
+}
+
+/* ================================================
+   模板1：杂志简约（升级版）
+   衬线字体主导，编辑感强，精准留白
+   字号 / 加粗 / 行高 / 缩进 全部走 TYPO 规范
+   注意：所有色块容器统一用 <section>，公众号粘贴时会剥掉 <div> 及其样式
+   ================================================ */
+function tmpl1(blk,c,html,h1Num){
+  const hero=c.primary;
+  const PX=TYPO.pagePadX;
+  switch(blk.type){
+    case 'cover':
+      // 引言：italic 淡化、不加粗；用统一字号
+      if(!html.trim())return'';
+      return`<section style="background-color:${hero};padding:34px ${PX}px 28px;text-align:center;">`
+            +`<p style="color:${c.accent};font-size:10px;letter-spacing:7px;margin:0 0 14px;">— FEATURE —</p>`
+            +`<p style="color:${c.secondary};font-size:${TYPO.size.cover}px;line-height:${TYPO.lh.cover};font-style:italic;margin:0;">${html}</p>`
+            +`<p style="color:${c.accent};font-size:13px;margin:14px 0 0;letter-spacing:4px;">◆</p>`
+            +`</section>`;
+    case 'h1':
+      if(!html.trim())return'';
+      return`<section style="margin:30px 0 14px;padding:0 ${PX}px;">`
+            +`<p style="color:${c.accent};font-size:9px;letter-spacing:5px;margin:0 0 8px;text-transform:uppercase;">NUMBER ${numPad2(h1Num)}</p>`
+            +`<h2 style="font-family:Georgia,'Times New Roman',STSong,serif;font-size:${TYPO.size.h1}px;font-weight:bold;color:${c.primary};line-height:${TYPO.lh.h1};margin:0 0 10px;">${html}</h2>`
+            +`<section style="width:36px;height:2px;background-color:${c.accent};"></section>`
+            +`</section>`;
+    case 'h2':
+      if(!html.trim())return'';
+      return`<h3 style="font-family:Georgia,STSong,serif;font-size:${TYPO.size.h2}px;font-weight:bold;color:${c.primary};margin:24px ${PX}px 10px;padding-left:13px;border-left:3px solid ${c.accent};line-height:${TYPO.lh.h2};">${html}</h3>`;
+    case 'h3':
+      // 不加粗、用规范字号、加横向小色条标识
+      if(!html.trim())return'';
+      return`<h4 style="font-size:${TYPO.size.h3}px;font-weight:bold;color:${c.primary};margin:20px ${PX}px 8px;line-height:${TYPO.lh.h3};">${html}</h4>`;
+    case 'body':
+      if(!html.trim())return'';
+      return`<p style="font-size:${TYPO.size.body}px;line-height:${TYPO.lh.body};color:${c.primary};margin:0 ${PX}px 14px;text-indent:${TYPO.indentBody};">${html}</p>`;
+    case 'quote':
+      if(!html.trim())return'';
+      return`<section style="background-color:${hero};margin:20px ${PX}px;padding:20px 22px;">`
+            +`<p style="color:${c.secondary};font-size:${TYPO.size.quote}px;line-height:${TYPO.lh.quote};font-style:italic;margin:0;border-left:3px solid ${c.accent};padding-left:14px;">${html}</p>`
+            +`</section>`;
+    case 'image':{
+      return renderImage(blk,c,{
+        margin:`18px ${PX}px`,
+        radius:'2px',
+        border:`1px solid ${c.accent}`,
+        padding:'6px',
+        capColor:c.primary,
+        capStyle:'font-style:italic',
+      });
+    }
+    case 'divider':
+      return`<p style="text-align:center;margin:26px ${PX}px;color:${c.accent};letter-spacing:14px;font-size:14px;">◆  ◆  ◆</p>`;
+    case 'footer':
+      if(!html.trim())return'';
+      return`<section style="background-color:${hero};padding:24px ${PX}px 26px;margin-top:28px;text-align:center;">`
+            +`<p style="color:${c.accent};font-size:10px;letter-spacing:5px;margin:0 0 8px;">— END —</p>`
+            +`<p style="color:${c.secondary};font-size:${TYPO.size.footer}px;line-height:${TYPO.lh.footer};margin:0;">${html}</p>`
+            +`</section>`;
+    default:return'';
+  }
+}
+
+/* ================================================
+   模板2：复古报纸（暖棕 + 双线 + 大引号）
+   字号 / 加粗 / 行高 / 缩进 走 TYPO 规范
+   注意：quote 是这个风格的灵魂（带大引号、署名、米色底色），有意保留特殊样式
+   注意：所有色块容器统一用 <section>，公众号粘贴时会剥掉 <div> 及其样式
+   ================================================ */
+function tmpl2(blk,c,html,h1Num){
+  const hero=c.primary;
+  const PX=TYPO.pagePadX;
+  const accentSoft=hexToRgba(c.accent,.08);
+  const accentMid=hexToRgba(c.accent,.6);
+  const dec=c.accent2||c.accent; // 装饰文字色（暗红等），缺省回退到 accent
+  const serif=`'Noto Serif SC','Songti SC','SimSun','STSong',serif`;
+  switch(blk.type){
+    case 'cover':
+      // 报纸引言：照搬"复古报纸.json"原数据，30px / weight:900 / letter-spacing:2px
+      // 这是这份风格的招牌，刻意不与 TYPO.size.cover 一致
+      // 在原数据基础上仅做两点改动：
+      //   a) 加深色底（primary），与正文浅底形成对比；引言文字 → secondary（浅色）
+      //   b) 去掉原 border-bottom 双横线（深底已经分隔了引言和正文，不再需要）
+      //   装饰文字（卷期号、副标）→ accent2 暗红，作为风格标识色
+      if(!html.trim())return'';
+      return`<section style="background-color:${hero};text-align:center;padding:30px ${PX}px;">`
+            +`<section style="display:flex;justify-content:space-between;font-size:11px;color:${dec};letter-spacing:1px;margin-bottom:10px;text-transform:uppercase;">`
+            +`<span>Vol. MMXXVI · No. 001</span><span>今日版 · BREAKING NEWS</span>`
+            +`</section>`
+            +`<h1 style="font-family:${serif};font-size:30px;font-weight:900;color:${c.secondary};margin:0;line-height:1.2;letter-spacing:2px;">${html}</h1>`
+            +`<p style="font-size:11px;color:${dec};margin:8px 0 0;letter-spacing:2px;text-transform:uppercase;">Official Gazette · Daily Edition</p>`
+            +`</section>`;
+    case 'h1':
+      // 一级标题：NUMBER · ONE 装饰标签（装饰色暗红）+ 黑棕大标题
+      if(!html.trim())return'';
+      return`<section style="margin:28px ${PX}px 14px;">`
+            +`<span style="display:inline-block;background:${dec};color:${c.secondary};font-size:11px;padding:3px 10px;letter-spacing:1px;margin-bottom:10px;">NUMBER · ${numEng(h1Num)}</span>`
+            +`<h2 style="font-family:${serif};font-size:${TYPO.size.h1}px;font-weight:bold;color:${hero};margin:0;line-height:${TYPO.lh.h1};letter-spacing:1px;">${html}</h2>`
+            +`</section>`;
+    case 'h2':
+      if(!html.trim())return'';
+      return`<h3 style="font-family:${serif};font-size:${TYPO.size.h2}px;font-weight:bold;color:${hero};margin:24px ${PX}px 10px;padding-left:12px;border-left:4px solid ${c.accent};line-height:${TYPO.lh.h2};">${html}</h3>`;
+    case 'h3':
+      if(!html.trim())return'';
+      return`<h4 style="font-family:${serif};font-size:${TYPO.size.h3}px;font-weight:bold;color:${hero};margin:20px ${PX}px 10px;line-height:${TYPO.lh.h3};">${html}</h4>`;
+    case 'body':
+      if(!html.trim())return'';
+      return`<p style="font-family:${serif};font-size:${TYPO.size.body}px;color:${hero};margin:0 ${PX}px 16px;line-height:${TYPO.lh.body};text-indent:${TYPO.indentBody};">${html}</p>`;
+    case 'quote':
+      // 风格灵魂：保留原 JSON 的 15px / italic / 大引号 / 署名 / 米色双线
+      if(!html.trim())return'';
+      return`<section style="margin:22px ${PX}px;padding:18px 16px;text-align:center;color:${hexToRgba(c.primary,.78)};font-size:15px;line-height:1.9;font-style:italic;border-top:1px solid ${accentMid};border-bottom:1px solid ${accentMid};background:${accentSoft};">`
+            +`<section style="font-size:28px;color:${dec};line-height:1;margin-bottom:6px;">&ldquo;</section>`
+            +`<section>${html}</section>`
+            +`<section style="font-size:12px;color:${dec};margin-top:12px;font-style:normal;letter-spacing:1px;">— 本报特约评论员</section>`
+            +`</section>`;
+    case 'image':{
+      // 老照片框：米色厚卡 + 阴影 + sepia 滤镜
+      const imgs=(blk.images||[]).filter(i=>i.url||i.local);
+      if(imgs.length===0)return'';
+      const cap=processMarks(blk.caption||'',c.accent).trim();
+      const photoFrame=hexToRgba(c.accent,.18);
+      // 单图特殊老照片包装；多图退回到 renderImage 的网格
+      if(imgs.length===1){
+        const src=imgs[0].url||imgs[0].local;
+        // 仅当用户填了图注才显示；不强迫
+        const capHtml=cap?`<p style="font-size:12px;color:${c.accent};margin:10px 0 0;font-style:italic;letter-spacing:1px;">▲ ${cap}</p>`:'';
+        return`<section style="margin:22px ${PX}px;text-align:center;">`
+              +`<section style="display:inline-block;padding:8px;background:${photoFrame};border:1px solid ${accentMid};">`
+              +`<img src="${src}" style="display:block;max-width:100%;height:auto;filter:sepia(10%) contrast(95%);" />`
+              +`</section>`
+              +capHtml
+              +`</section>`;
+      }
+      return renderImage(blk,c,{
+        margin:`22px ${PX}px`,
+        radius:'0',
+        border:`1px solid ${accentMid}`,
+        padding:'6px',
+        capColor:c.accent,
+        capStyle:`font-style:italic;letter-spacing:1px`,
+      });
+    }
+    case 'divider':
+      // 虚线分隔
+      return`<section style="margin:22px ${PX}px;text-align:center;">`
+            +`<section style="height:1px;background:repeating-linear-gradient(90deg,${c.accent},${c.accent} 4px,transparent 4px,transparent 8px);"></section>`
+            +`</section>`;
+    case 'footer':
+      if(!html.trim())return'';
+      return`<section style="margin:32px ${PX}px 0;padding-top:16px;border-top:3px double ${c.accent};text-align:center;color:${c.accent};font-size:${TYPO.size.footer}px;line-height:${TYPO.lh.footer};">`
+            +`<section style="margin-bottom:10px;">${html}</section>`
+            +`<section style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:${dec};">&copy; Official Gazette &middot; All Rights Reserved</section>`
+            +`</section>`;
+    default:return'';
+  }
+}
+
+/* ================================================
+   模板3：手写便签（楷体 + 格子纸 + 手写感）
+   字号 / 加粗 / 行高 / 缩进 全部走 TYPO 规范
+   注意：所有色块容器统一用 <section>，公众号粘贴时会剥掉 <div> 及其样式
+   ================================================ */
+function paperBg(c,paper){
+  // 用网格线绘制背景，公众号兼容；线条做得更淡（.12）以减少视觉干扰
+  const line=hexToRgba(c.primary,.12);
+  const size=paper==='grid-sm'?18:24;
+  return `background-color:${c.secondary};background-image:linear-gradient(${line} 1px,transparent 1px),linear-gradient(90deg,${line} 1px,transparent 1px);background-size:${size}px ${size}px;`;
+}
+
+function tmpl3(blk,c,html,h1Num){
+  // 楷体优先，西文用 Courier 营造手写打字机感，最后退回衬线
+  const kai=`'STKaiti','KaiTi','楷体','FangSong','SimSun','Courier New',serif`;
+  const hero=c.primary;
+  const heroSoft=hexToRgba(c.primary,.4);   // 边框等用半透明，让格子能透
+  // 引用块底色：直接用点缀色（不透明），让用户改色无障碍
+  const quoteBg=c.accent;
+  switch(blk.type){
+    case 'cover':
+      // 引言：italic 淡灰、不加粗
+      if(!html.trim())return'';
+      return`<section style="text-align:center;padding:18px 0 22px;margin:6px 0 14px;">`
+            +`<p style="font-family:${kai};font-size:${TYPO.size.cover}px;color:${hexToRgba(c.primary,.6)};line-height:${TYPO.lh.cover};margin:0;font-style:italic;">${html}</p>`
+            +`<section style="width:48px;height:2px;background:${heroSoft};margin:14px auto 0;border-radius:1px;"></section>`
+            +`</section>`;
+    case 'h1':
+      // 加"其 壹"装饰文字（楷体上标，文艺感）
+      if(!html.trim())return'';
+      return`<section style="margin:30px 0 14px;">`
+            +`<p style="font-family:${kai};color:${heroSoft};font-size:13px;letter-spacing:6px;margin:0 0 6px;">其 ${numCnUpper(h1Num)}</p>`
+            +`<h2 style="font-family:${kai};font-size:${TYPO.size.h1}px;font-weight:bold;color:${hero};margin:0;padding-bottom:8px;border-bottom:2px solid ${heroSoft};line-height:${TYPO.lh.h1};letter-spacing:1px;">${html}</h2>`
+            +`</section>`;
+    case 'h2':
+      if(!html.trim())return'';
+      return`<h3 style="font-family:${kai};font-size:${TYPO.size.h2}px;font-weight:bold;color:${hero};margin:24px 0 12px;padding-left:12px;border-left:3px solid ${hero};line-height:${TYPO.lh.h2};">${html}</h3>`;
+    case 'h3':
+      if(!html.trim())return'';
+      return`<h4 style="font-family:${kai};font-size:${TYPO.size.h3}px;font-weight:bold;color:${hero};margin:20px 0 10px;line-height:${TYPO.lh.h3};">${html}</h4>`;
+    case 'body':
+      // 正文：首行缩进 2 字
+      if(!html.trim())return'';
+      return`<p style="font-family:${kai};font-size:${TYPO.size.body}px;color:${hero};margin:0 0 16px;line-height:${TYPO.lh.body};text-indent:${TYPO.indentBody};">${html}</p>`;
+    case 'quote':
+      if(!html.trim())return'';
+      return`<section style="margin:20px 0;padding:14px 18px;background:${quoteBg};border-left:3px solid ${hero};">`
+            +`<p style="font-family:${kai};font-size:${TYPO.size.quote}px;color:${hero};line-height:${TYPO.lh.quote};margin:0;font-style:italic;">${html}</p>`
+            +`</section>`;
+    case 'image':{
+      return renderImage(blk,c,{
+        margin:'20px 0',
+        radius:'0',
+        border:`6px solid ${hexToRgba(c.secondary,.95)}`,
+        padding:'0',
+        capColor:hexToRgba(c.primary,.55),
+        capStyle:`font-family:${kai};font-size:13px;font-style:italic`,
+      });
+    }
+    case 'divider':
+      return`<p style="text-align:center;margin:24px 0;color:${heroSoft};font-size:16px;letter-spacing:8px;">* * *</p>`;
+    case 'footer':
+      if(!html.trim())return'';
+      return`<section style="margin:32px 0 0;padding-top:20px;border-top:1px solid ${heroSoft};text-align:center;">`
+            +`<p style="font-family:${kai};font-size:${TYPO.size.footer}px;color:${hexToRgba(c.primary,.55)};margin:0 0 10px;line-height:${TYPO.lh.footer};font-style:italic;">${html}</p>`
+            +`<p style="font-family:${kai};font-size:12px;color:${hexToRgba(c.primary,.4)};margin:0;font-style:italic;">— 手写于格子纸 —</p>`
+            +`</section>`;
+    default:return'';
+  }
+}
+
+/* ================================================
+   自定义模板渲染
+   ================================================ */
+function tmplCustom(blk,html,activeCustom,h1Num){
+  if(!activeCustom)return`<p style="color:#999;text-align:center;padding:20px;font-size:13px;">请先导入自定义模板</p>`;
+  const tpls=activeCustom.blocks||{};
+  // 把 {primary}/{secondary}/{accent} 占位符替换为当前 g.colors（由配色面板控制）
+  // 旧版/写死颜色的 JSON 没有占位符，这里 noop
+  const c=g.colors||{};
+  const fillColors=s=>String(s||'')
+    .replace(/\{primary\}/g,c.primary||'#000')
+    .replace(/\{secondary\}/g,c.secondary||'#fff')
+    .replace(/\{accent\}/g,c.accent||'#666');
+  // H1 自动编号占位符：用户在 JSON 里可写 {number} / {numberPad2} / {numberEng} / {numberCn}
+  const fillNum=s=>String(s||'')
+    .replace(/\{numberPad2\}/g,h1Num?numPad2(h1Num):'')
+    .replace(/\{numberEng\}/g,h1Num?numEng(h1Num):'')
+    .replace(/\{numberCn\}/g,h1Num?numCnUpper(h1Num):'')
+    .replace(/\{number\}/g,h1Num?String(h1Num):'');
+  if(blk.type==='image'){
+    const imgs=(blk.images||[]).filter(i=>i.url||i.local);
+    if(imgs.length===0)return'';
+    const tpl=fillColors(tpls.image||`<img src="{src}" style="width:100%;display:block;" />`);
+    const inner=imgs.map(i=>tpl.replace(/{src}/g,i.url||i.local)).join('');
+    const cap=(blk.caption||'').trim();
+    const capHtml=cap?`<p style="font-size:12px;color:#888;text-align:center;margin:6px 16px 0;font-style:italic;">${cap}</p>`:'';
+    return inner+capHtml;
+  }
+  if(blk.type==='divider')return fillColors(tpls.divider||'<hr style="border:none;border-top:1px solid #ddd;margin:20px 16px;" />');
+  if(!html.trim())return'';
+  const tpl=tpls[blk.type];if(!tpl)return'';
+  let out=fillColors(tpl).replace(/{content}/g,html);
+  if(blk.type==='h1')out=fillNum(out);
+  return out;
+}
+
+/* ================================================
+   预览 & 复制
+   ================================================ */
+function updatePreview(){document.getElementById('preview-inner').innerHTML=generateHTML(false)}
+
+document.getElementById('btn-copy').onclick=async()=>{
+  const waiting=g.blocks.filter(b=>b.type==='image'&&b.images&&b.images.some(i=>i.uploading||(i.local&&!i.url)));
+  if(waiting.length>0){toast(`还有图片正在上传，稍等一下`,3000);return}
+  const html=generateHTML(true);
+  const ok=await copyRichHTML(html);
+  toast(ok?'HTML 已复制（富文本格式）！打开公众号后台粘贴就行了 🎉':'复制失败，请重试',3200);
+};
+
+/* 富文本复制：必须把 text/html MIME 写进剪贴板，公众号才会识别为格式化内容 */
+async function copyRichHTML(html){
+  // 方案 A：Clipboard API + ClipboardItem（现代浏览器）
+  if(navigator.clipboard&&window.ClipboardItem){
+    try{
+      const blob=new Blob([html],{type:'text/html'});
+      const textBlob=new Blob([html],{type:'text/plain'});
+      await navigator.clipboard.write([new ClipboardItem({'text/html':blob,'text/plain':textBlob})]);
+      return true;
+    }catch(e){/* 继续降级 */}
+  }
+  // 方案 B：临时 contenteditable + execCommand('copy')，浏览器会自动带上 text/html
+  try{
+    const div=document.createElement('div');
+    div.contentEditable='true';
+    div.innerHTML=html;
+    div.style.cssText='position:fixed;left:-9999px;top:0;width:600px;opacity:0';
+    document.body.appendChild(div);
+    const range=document.createRange();
+    range.selectNodeContents(div);
+    const sel=window.getSelection();
+    sel.removeAllRanges();sel.addRange(range);
+    const ok=document.execCommand('copy');
+    sel.removeAllRanges();
+    document.body.removeChild(div);
+    return ok;
+  }catch(e){return false}
+}
+
+/* ================================================
+   历史栈（撤销/重做）
+   ================================================ */
+const HISTORY_LIMIT=80;
+let historyStack=[];
+let redoStack=[];
+
+function snapshot(){
+  // 同步所有 contenteditable 内容到 g.blocks
+  syncAll();
+  // 深拷贝
+  // 注意：不保存 customTemplates 自身（撤销不应撤销文件上传/删除）；
+  // 但保留 activeCustomId 和 colors，让"切换模板"和"调色"仍可撤销
+  return JSON.stringify({
+    blocks:g.blocks,
+    template:g.template,
+    colors:g.colors,
+    paper:g.paper,
+    activePreset:g.activePreset,
+    activeCustomId:g.activeCustomId,
+  });
+}
+function restore(snap){
+  const obj=JSON.parse(snap);
+  g.blocks=obj.blocks;
+  g.template=obj.template;
+  g.colors=obj.colors;
+  g.paper=obj.paper;
+  g.activePreset=obj.activePreset;
+  // activeCustomId：如果撤销到的快照里指向的模板已经被删了，回退到内置杂志
+  if(obj.activeCustomId&&g.customTemplates.find(c=>c.id===obj.activeCustomId)){
+    g.activeCustomId=obj.activeCustomId;
+  }else{
+    g.activeCustomId=null;
+    if(obj.activeCustomId){
+      // 原本在某个被删的自定义模板上 → 退到杂志
+      g.template=1;
+    }
+  }
+  // UI 重建
+  refreshTemplateTabsUI();
+  document.querySelectorAll('.paper-tab').forEach(b=>b.classList.toggle('active',b.dataset.paper===g.paper));
+  syncColorUI();updatePaperTabsVisibility();
+  rebuildBlocksList();
+  updatePreview();
+  refreshUndoRedoUI();
+}
+function pushHistory(){
+  const snap=snapshot();
+  if(historyStack[historyStack.length-1]===snap)return;
+  historyStack.push(snap);
+  if(historyStack.length>HISTORY_LIMIT)historyStack.shift();
+  redoStack.length=0;
+  refreshUndoRedoUI();
+}
+function undo(){
+  if(historyStack.length===0){toast('没有可撤销的操作');return}
+  const cur=snapshot();
+  redoStack.push(cur);
+  const prev=historyStack.pop();
+  restore(prev);
+}
+function redo(){
+  if(redoStack.length===0){toast('没有可重做的操作');return}
+  const cur=snapshot();
+  historyStack.push(cur);
+  const next=redoStack.pop();
+  restore(next);
+}
+function refreshUndoRedoUI(){
+  const u=document.getElementById('btn-undo');
+  const r=document.getElementById('btn-redo');
+  u.disabled=historyStack.length===0;
+  r.disabled=redoStack.length===0;
+  // 有可撤销内容时，让"撤销"成为主按钮（提示用户当前最重要的操作）
+  u.classList.toggle('primary',historyStack.length>0);
+}
+document.getElementById('btn-undo').onclick=undo;
+document.getElementById('btn-redo').onclick=redo;
+document.addEventListener('keydown',e=>{
+  // 仅在编辑器面板上下文有效（避免影响输入框等）
+  const inEditor=e.target.closest('#editor-panel')||e.target===document.body;
+  if(!inEditor)return;
+  if(e.ctrlKey&&!e.shiftKey&&(e.key==='z'||e.key==='Z')){e.preventDefault();undo()}
+  else if(e.ctrlKey&&((e.key==='y'||e.key==='Y')||(e.shiftKey&&(e.key==='z'||e.key==='Z')))){e.preventDefault();redo()}
+  else if(e.key==='Delete'&&g.selectedBids.size>0&&!e.target.closest('[contenteditable]')){
+    e.preventDefault();
+    pushHistory();
+    g.blocks=g.blocks.filter(b=>!g.selectedBids.has(b.id));
+    g.selectedBids.clear();
+    rebuildBlocksList();updatePreview();
+  }
+});
+
+/* ================================================
+   拖拽排序
+   ================================================ */
+let dragState={bid:null,bids:[]};
+function attachDragHandlers(handle,wrapper,bid){
+  handle.addEventListener('dragstart',e=>{
+    // 如果当前块在多选里，整组拖；否则单独拖
+    let bids;
+    if(g.selectedBids.has(bid)&&g.selectedBids.size>1){
+      bids=g.blocks.map(b=>b.id).filter(id=>g.selectedBids.has(id));
+    }else{
+      bids=[bid];
+      g.selectedBids.clear();refreshFocusUI();
+    }
+    dragState={bid,bids};
+    e.dataTransfer.effectAllowed='move';
+    try{e.dataTransfer.setData('text/plain',bid)}catch(err){}
+    bids.forEach(id=>{
+      const w=document.querySelector(`[data-wrapper-id="${id}"]`);
+      if(w)w.classList.add('dragging');
+    });
+  });
+  handle.addEventListener('dragend',()=>{
+    document.querySelectorAll('.blk-wrap.dragging').forEach(w=>w.classList.remove('dragging'));
+    document.querySelectorAll('.drop-before,.drop-after').forEach(w=>w.classList.remove('drop-before','drop-after'));
+    dragState={bid:null,bids:[]};
+  });
+  wrapper.addEventListener('dragover',e=>{
+    if(!dragState.bid)return;
+    if(dragState.bids.includes(wrapper.getAttribute('data-wrapper-id')))return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect='move';
+    const r=wrapper.getBoundingClientRect();
+    const before=(e.clientY-r.top)<r.height/2;
+    document.querySelectorAll('.drop-before,.drop-after').forEach(w=>w.classList.remove('drop-before','drop-after'));
+    wrapper.classList.add(before?'drop-before':'drop-after');
+  });
+  wrapper.addEventListener('dragleave',()=>{
+    wrapper.classList.remove('drop-before','drop-after');
+  });
+  wrapper.addEventListener('drop',e=>{
+    if(!dragState.bid)return;
+    e.preventDefault();
+    const targetId=wrapper.getAttribute('data-wrapper-id');
+    if(dragState.bids.includes(targetId))return;
+    const before=wrapper.classList.contains('drop-before');
+    wrapper.classList.remove('drop-before','drop-after');
+    moveBlocks(dragState.bids,targetId,before);
+  });
+}
+function moveBlocks(movingIds,targetId,before){
+  pushHistory();
+  const moving=g.blocks.filter(b=>movingIds.includes(b.id));
+  const remain=g.blocks.filter(b=>!movingIds.includes(b.id));
+  const tIdx=remain.findIndex(b=>b.id===targetId);
+  if(tIdx<0){g.blocks=remain.concat(moving);rebuildBlocksList();updatePreview();return}
+  const insertAt=before?tIdx:tIdx+1;
+  remain.splice(insertAt,0,...moving);
+  g.blocks=remain;
+  rebuildBlocksList();updatePreview();
+}
+
+/* ================================================
+   鼠标框选多选
+   注意：mouseup 后会触发同位置的 click 事件；如果 click 处理函数清空多选，
+   会让框选结果立刻消失。用 justSelected 标记拦截紧随的那次 click。
+   ================================================ */
+let justSelected=false;
+(()=>{
+  const eb=document.getElementById('editor-body');
+  const rect=document.getElementById('selection-rect');
+  let active=false,startX=0,startY=0,startScrollTop=0,moved=false;
+  eb.addEventListener('mousedown',e=>{
+    // 只在编辑区空白处触发（避开块内容、按钮、可编辑区）
+    if(e.button!==0)return;
+    if(e.target.closest('.blk-wrap'))return;
+    if(e.target.closest('#add-block-row'))return;
+    active=true;moved=false;
+    const r=eb.getBoundingClientRect();
+    startScrollTop=eb.scrollTop;
+    startX=e.clientX-r.left+eb.scrollLeft;
+    startY=e.clientY-r.top+startScrollTop;
+    rect.style.left=startX+'px';rect.style.top=startY+'px';
+    rect.style.width='0px';rect.style.height='0px';rect.style.display='block';
+    if(!e.shiftKey&&!e.ctrlKey){g.selectedBids.clear();refreshFocusUI()}
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!active)return;
+    const r=eb.getBoundingClientRect();
+    const cx=e.clientX-r.left+eb.scrollLeft;
+    const cy=e.clientY-r.top+eb.scrollTop;
+    const x=Math.min(cx,startX),y=Math.min(cy,startY);
+    const w=Math.abs(cx-startX),h=Math.abs(cy-startY);
+    if(w>3||h>3)moved=true;
+    rect.style.left=x+'px';rect.style.top=y+'px';
+    rect.style.width=w+'px';rect.style.height=h+'px';
+    // 命中检测
+    const sel=new Set();
+    const rectAbs={l:x,t:y,r:x+w,b:y+h};
+    document.querySelectorAll('.blk-wrap').forEach(wr=>{
+      const wb=wr.getBoundingClientRect();
+      const wl=wb.left-r.left+eb.scrollLeft;
+      const wt=wb.top-r.top+eb.scrollTop;
+      const wright=wl+wb.width,wbot=wt+wb.height;
+      const overlap=!(rectAbs.r<wl||rectAbs.l>wright||rectAbs.b<wt||rectAbs.t>wbot);
+      if(overlap)sel.add(wr.getAttribute('data-wrapper-id'));
+    });
+    g.selectedBids=sel;
+    refreshFocusUI();
+  });
+  document.addEventListener('mouseup',()=>{
+    if(!active)return;
+    active=false;
+    rect.style.display='none';
+    // 框选过（鼠标实际拖动了）→ 拦截紧随的 click，避免清空
+    if(moved&&g.selectedBids.size>0){
+      justSelected=true;
+      // 仅一拍：下个事件循环结束就解除
+      setTimeout(()=>{justSelected=false},0);
+    }
+  });
+})();
+
+/* 点击编辑区空白处取消多选（但刚刚完成一次框选时不取消） */
+document.getElementById('editor-body').addEventListener('click',e=>{
+  if(justSelected)return;
+  if(e.target.id==='editor-body'||e.target.id==='blocks-list'){
+    if(g.selectedBids.size>0){g.selectedBids.clear();refreshFocusUI()}
+  }
+});
+
+/* ================================================
+   初始化
+   ================================================ */
+function init(){
+  renderPrompt(0);
+  const defaults=[
+    {type:'cover',content:'在这里写引言<br>或者留空也可以'},
+    {type:'h1',content:'在这里写一级标题'},
+    {type:'body',content:'这是正文段落。直接点击修改，选中文字后点「高亮」可以标重点。'},
+    {type:'image',content:''},
+    {type:'h2',content:'二级小标题'},
+    {type:'body',content:'继续写你的内容…'},
+    {type:'quote',content:'这是引用块，适合放名言、摘抄或强调某句话。'},
+    {type:'divider',content:''},
+    {type:'footer',content:'作者 · 公众号名称 | 觉得有用就点个赞 👍'},
+  ];
+  defaults.forEach(d=>{const b=makeBlock(d.type);b.content=d.content||'';g.blocks.push(b);mountBlock(b)});
+  syncColorUI();
+  refreshTemplateTabsUI();
+  updatePaperTabsVisibility();
+  refreshUndoRedoUI();
+  updatePreview();
+}
+init();
+</script>
+</body>
+</html>
