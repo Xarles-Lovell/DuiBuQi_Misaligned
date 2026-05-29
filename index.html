@@ -119,12 +119,21 @@ body{font-family:-apple-system,'PingFang SC','Helvetica Neue',sans-serif;backgro
 .blk-img-cell.uploading::after{content:'上传中…';position:absolute;inset:0;background:rgba(0,0,0,.45);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px}
 .blk-img-cell-del{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;display:none;z-index:2}
 .blk-img-cell:hover .blk-img-cell-del{display:flex;align-items:center;justify-content:center}
+/* 单张图大小选择：左下角 hover 才出现，三个小按钮 */
+.blk-img-cell-size{position:absolute;left:3px;bottom:3px;display:none;gap:2px;z-index:2;background:rgba(0,0,0,.55);border-radius:10px;padding:2px}
+.blk-img-cell:hover .blk-img-cell-size{display:flex}
+.blk-img-cell-size button{width:18px;height:16px;border:none;background:transparent;color:#fff;cursor:pointer;font-size:10px;line-height:1;border-radius:8px;padding:0;font-family:inherit}
+.blk-img-cell-size button.on{background:#fff;color:#1c1c1c;font-weight:700}
+.blk-img-cell-size button:hover:not(.on){background:rgba(255,255,255,.25)}
 .blk-img-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;justify-content:center}
 .blk-img-actbtn{padding:4px 10px;border:1px solid var(--border);background:var(--surface);border-radius:5px;font-family:inherit;font-size:12px;color:#666;cursor:pointer;transition:all .1s}
 .blk-img-actbtn:hover{background:var(--bg);color:var(--text)}
 .blk-caption{margin-top:6px}
 .blk-caption [contenteditable]{font-size:12px;color:#888;text-align:center;font-style:italic;padding:4px 8px;min-height:24px}
 .blk-caption [contenteditable]:empty::before{content:'图注（可选）…';color:#ddd}
+.blk-byline{margin-top:4px}
+.blk-byline [contenteditable]{font-size:12px;color:#888;text-align:center;font-style:italic;padding:4px 8px;min-height:24px}
+.blk-byline [contenteditable]:empty::before{content:'署名（可选，仅报纸风格使用）…';color:#aaa}
 .blk-divider-vis{padding:9px 8px;text-align:center;display:flex;align-items:center;gap:8px;color:#ccc;font-size:13px}
 .blk-divider-vis::before,.blk-divider-vis::after{content:'';flex:1;height:1px;background:var(--border)}
 #add-block-row{display:flex;flex-wrap:wrap;gap:5px;padding:4px 0;align-items:center}
@@ -156,7 +165,7 @@ mark{padding:0 2px}
 .cp-preset-btn:hover{border-color:#aaa;background:var(--bg)}
 .cp-preset-btn.active{border-color:var(--text);background:var(--text);color:#fff}
 .cp-row{display:flex;align-items:center;gap:9px;margin-bottom:10px}
-.cp-label{font-size:12px;color:var(--muted);width:44px;flex-shrink:0}
+.cp-label{font-size:12px;color:var(--muted);width:50px;flex-shrink:0}
 .cp-badge{font-size:10px;color:var(--muted);background:var(--bg);border-radius:4px;padding:1px 5px;flex-shrink:0}
 input[type=color]{width:30px;height:26px;border:1px solid var(--border);border-radius:5px;padding:1px;cursor:pointer;flex-shrink:0}
 .cp-hex{font-size:11px;color:var(--muted);font-family:'SF Mono',Consolas,monospace;flex:1}
@@ -265,11 +274,12 @@ input[type=color]{width:30px;height:26px;border:1px solid var(--border);border-r
   <div class="cp-presets">
     <button class="cp-preset-btn active" id="preset-0">经典黑白</button>
     <button class="cp-preset-btn" id="preset-1">墨绿高级</button>
+    <button class="cp-preset-btn" id="preset-2" style="display:none">备用</button>
   </div>
-  <div class="cp-row"><span class="cp-label">主色</span><span class="cp-badge">70%</span><input type="color" id="c-primary"><span class="cp-hex" id="h-primary"></span></div>
-  <div class="cp-row"><span class="cp-label">辅色</span><span class="cp-badge" id="badge-secondary">25%</span><input type="color" id="c-secondary"><span class="cp-hex" id="h-secondary"></span></div>
-  <div class="cp-row"><span class="cp-label">点缀色</span><span class="cp-badge">&nbsp;&nbsp;5%</span><input type="color" id="c-accent"><span class="cp-hex" id="h-accent"></span></div>
-  <div class="cp-row" id="cp-row-accent2" style="display:none"><span class="cp-label">装饰色</span><span class="cp-badge">&nbsp;&nbsp;5%</span><input type="color" id="c-accent2"><span class="cp-hex" id="h-accent2"></span></div>
+  <div class="cp-row"><span class="cp-label">字色</span><input type="color" id="c-text"><span class="cp-hex" id="h-text"></span></div>
+  <div class="cp-row"><span class="cp-label">背景色</span><input type="color" id="c-bg"><span class="cp-hex" id="h-bg"></span></div>
+  <div class="cp-row"><span class="cp-label">点缀色</span><input type="color" id="c-accent"><span class="cp-hex" id="h-accent"></span></div>
+  <div class="cp-row" id="cp-row-decor" style="display:none"><span class="cp-label">装饰色</span><input type="color" id="c-decor"><span class="cp-hex" id="h-decor"></span></div>
   <button class="cp-reset" id="reset-colors">恢复预设配色</button>
 </div>
 
@@ -516,16 +526,17 @@ const IMGBB_TTL = 43200; // 12 小时后自动过期
 
 const TMPL_PRESETS = {
   1:[
-    {label:'经典黑白', primary:'#1a1a1a', secondary:'#FDFBF2', accent:'#8b1a1a'},
-    {label:'墨绿高级', primary:'#194333', secondary:'#FFFBF5', accent:'#EBAC00'},
+    {label:'经典黑白', text:'#1a1a1a', bg:'#FDFBF2', accent:'#8b1a1a'},
+    {label:'墨绿高级', text:'#194333', bg:'#FFFBF5', accent:'#EBAC00'},
   ],
   2:[
-    {label:'复古报纸', primary:'#4D3B2E', secondary:'#F5F0E4', accent:'#8B7355', accent2:'#AD2525'},
-    {label:'深蓝新闻', primary:'#0F2540', secondary:'#F2F5F8', accent:'#1A6B9A', accent2:'#C4A060'},
+    {label:'复古报纸', text:'#4D3B2E', bg:'#F5F0E4', accent:'#8B7355', decor:'#AD2525'},
+    {label:'深蓝新闻', text:'#0F2540', bg:'#F2F5F8', accent:'#1A6B9A', decor:'#C4A060'},
   ],
   3:[
-    {label:'黑白灰', primary:'#2a2a2a', secondary:'#f9f9f9', accent:'#DEDEDE', paper:'grid-mid'},
-    {label:'蓝粉', primary:'#5b6b8a', secondary:'#fef6f8', accent:'#b8d4ec', paper:'grid-mid'},
+    {label:'黑白灰', text:'#2a2a2a', bg:'#f9f9f9', accent:'#DEDEDE', paper:'grid-mid'},
+    {label:'红绿', text:'#F8CDA5', bg:'#22443B', accent:'#541717', paper:'grid-mid'},
+    {label:'黑粉', text:'#FE95CD', bg:'#24191F', accent:'#37202F', paper:'grid-mid'},
   ],
 };
 
@@ -597,9 +608,9 @@ const PROMPTS = [
   "name": "模板名称",
   "version": 1,
   "colors": {
-    "primary":   "#xxxxxx",
-    "secondary": "#xxxxxx",
-    "accent":    "#xxxxxx"
+    "text":   "#xxxxxx",
+    "bg":     "#xxxxxx",
+    "accent": "#xxxxxx"
   },
   "wrapper": "整体容器内联CSS（背景色、字体等），格式：key:value;key:value",
   "blocks": {
@@ -608,7 +619,7 @@ const PROMPTS = [
     "h2": "二级标题 HTML",
     "h3": "三级标题 HTML",
     "body": "正文段落 HTML，用 {content} 代表段落文字",
-    "quote": "引用块 HTML，用 {content} 代表引用文字",
+    "quote": "引用块 HTML，用 {content} 代表引用文字，{byline} 代表可选署名（用户没写时为空，写了时会带前缀'—— '）",
     "divider": "分隔线 HTML（不需要 {content}）",
     "image": "图片 HTML，用 {src} 代表图片链接",
     "footer": "结尾区域 HTML，用 {content} 代表结尾文字"
@@ -616,8 +627,12 @@ const PROMPTS = [
 }
 
 配色规范（重要）：
-- **colors 字段必填**：填这个风格的核心三色 — primary（主色 70%，正文/标题用）/ secondary（辅色 25%，背景/底色用）/ accent（点缀色 5%，装饰线/标签等用）
-- **wrapper 和 blocks 里凡是用到这三个颜色的地方，必须写成占位符 {primary} / {secondary} / {accent}**，不要直接写死 hex 色值。这样用户在配色面板调色时预览能跟着变。半透明色不便用占位符时可以写 hex，但能用占位符就尽量用
+- **colors 字段必填**：填这个风格的核心三色
+  - **text**（字色）：文字主色，也常用作大面积深色块底
+  - **bg**（背景色）：页面整体背景色，与字色形成对比
+  - **accent**（点缀色）：装饰线/标签/小图标等点缀用色
+- 报纸/复古这类风格如有第二种装饰色，可加 **decor**（装饰色）字段
+- **wrapper 和 blocks 里凡是用到这些颜色的地方，必须写成占位符 {text} / {bg} / {accent} / {decor}**，不要直接写死 hex 色值。这样用户在配色面板调色时预览能跟着变。半透明色不便用占位符时可以写 hex，但能用占位符就尽量用
 
 H1 自动编号（重要）：
 - h1 模板里**应该**包含一个序号占位符，渲染时会被自动替换为该 H1 在文章里的顺序号
@@ -634,10 +649,50 @@ H1 自动编号（重要）：
 - **引言风格**：cover 字号同正文、不加粗、italic、颜色稍淡，营造"引言"的氛围；不要做成大标题
 - **真正的标题来自 h1**：用户的"主标题"在 h1 块，要做最大、最显眼
 
+引言区 / 结尾区的构造方式（重要，请仔细看）：
+本工具会把 cover 块和它前后的 image / divider / 其他可编辑块捆绑成一个"引言区"，footer 块同理捆绑成一个"结尾区"。也就是说：
+- 用户允许在引言/结尾里继续插图片、分隔线、再多写几段文字
+- 这些"中间内容"的背景应该自然透出引言/结尾的整体底色（比如深色头版底）
+
+你的 cover / footer 模板**只负责输出"该块自身的内容"**，不要在 cover / footer 模板里写"区域装饰头/尾"（比如"— END —"装饰小字、报头大装饰文字、底部署名等不应该跟着 cover/footer 块重复出现的元素）。
+
+如果你的风格需要"区域装饰头/尾"——比如：
+- 杂志的 — FEATURE — / ◆ 装饰
+- 报纸的 Vol. 卷期号 / 副标
+- 便签上下两道分割线
+
+请把这些装饰直接**内联在 wrapper 之外另外写**？做不到的话就放进 cover/footer 模板里也可以，但要清楚：cover/footer 模板可能会出现多次（用户可能写多个 cover 或多个 footer 段落），所以同一个装饰会被重复渲染。**最干净的做法是：cover/footer 块只输出 {content} 文字，不带装饰。**
+
+结尾署名（重要）：
+- 用户的所有作品都通过本工具排版，所以结尾要带固定署名"© DuiBuQi_MISALIGNED · TYPESETTING"或"—「对不齐」网站排版 —"风格的文案
+- 如果你的风格是英文/西式（如杂志、报纸），署名格式：© DuiBuQi_MISALIGNED · TYPESETTING（DuiBuQi 这个拼音必须有大有小，其他全大写）
+- 如果你的风格是中式/手写感（如便签、复古），署名格式：—「对不齐」网站排版 —
+- 署名应该放在 footer 的最底部，作为整篇排版的"水印"
+
 字号特例豁免（重要）：
 - 上面字号规范是默认值。如果某个块是这套风格的"招牌"（比如报纸的报头大字、复古海报的巨型 H1、杂志封面 drop cap），**允许在那一个块上突破规范**，做成更大、更夸张、能立得住整个风格
 - 但必须节制：每套模板里**最多 1–2 个块**这样豁免，其余仍走默认；不要全模板都"特殊"，那就没有特殊
 - 豁免请在该块的 HTML 注释或 JSON 顶层 README 字段里写明原因，方便用户理解
+
+分割线 vs 区域分割（重要，避免概念混淆）：
+- **分割线（divider）**：只用在大区域内部，分隔段落之间的小区块，比如正文里的几个段落之间
+- **区域分割**（如杂志的 — END —）：分隔大区域，比如正文与结尾之间。这种装饰应该作为"结尾区域装饰头"，**不要**跟着 footer 块输出（否则用户写多个 footer 时会出现多个 — END —）
+
+图片块通用化（重要）：
+- 图片块要做成**通用模块**——背景透明、不要用"实心色块"挡住底层风格背景，让上层（正文白底 / 结尾深色 / 引言深色等）的背景能透出来
+- 允许加**透明背景的相框装饰**（border + 内 padding），相框不会挡底色，只会让图片看起来像被框起来
+- 单图建议外层加左右 padding 让图片视觉收窄居中（默认尺寸约 32px，与正文 2em 首字符对齐）；多图保持自动换行 + 居中
+- 用户可以给每张图选 **大 / 中 / 小** 三档，本工具会自动调整外层 padding（单图）或 cell 宽度（多图）；模板侧不需要管这个，只要保证 image HTML 模板里 img 的 `width:100%` 即可
+
+引用块署名（quote 专属占位符）：
+- quote 模板里支持 `{byline}` 占位符（除了 {content}）
+- 用户在编辑器引用块下方输入"署名"——填了就把 `{byline}` 替换成 `—— xxx`（双破折号），没填就替换成空串
+- 这个占位符是**可选**的：你的 quote 模板里写不写 `{byline}` 都可以；写了的话用户就能在那个位置看到自己写的署名
+
+破折号约定（重要）：
+- 装饰性小横线（如 — END —、— FEATURE —）用单 em-dash `—`
+- 引用署名前缀（`—— xxx`）用双 em-dash `——`
+- 这两者视觉差别明显，不要混用
 
 技术要求：
 1. 所有样式必须内联在 style="" 里，不能用 <style> 标签
@@ -655,9 +710,9 @@ H1 自动编号（重要）：
   "name": "模板名称",
   "version": 1,
   "colors": {
-    "primary":   "#xxxxxx",
-    "secondary": "#xxxxxx",
-    "accent":    "#xxxxxx"
+    "text":   "#xxxxxx",
+    "bg":     "#xxxxxx",
+    "accent": "#xxxxxx"
   },
   "wrapper": "整体容器内联CSS（含 padding:24px 22px）",
   "blocks": {
@@ -666,7 +721,7 @@ H1 自动编号（重要）：
     "h2": "二级标题 HTML",
     "h3": "三级标题 HTML",
     "body": "正文段落 HTML，用 {content} 代表段落文字",
-    "quote": "引用块 HTML，用 {content} 代表引用文字",
+    "quote": "引用块 HTML，用 {content} 代表引用文字，{byline} 代表可选署名（用户没写时为空，写了时会带前缀'—— '）",
     "divider": "分隔线 HTML（不需要 {content}）",
     "image": "图片 HTML，用 {src} 代表图片链接",
     "footer": "结尾区域 HTML，用 {content} 代表结尾文字"
@@ -674,8 +729,12 @@ H1 自动编号（重要）：
 }
 
 配色规范（重要）：
-- **colors 字段必填**：从参考图提取主色 primary（70%，正文/标题）、辅色 secondary（25%，背景/底色）、点缀色 accent（5%，装饰线/标签）
-- **wrapper 和 blocks 里用到这三个颜色的位置必须写成 {primary} / {secondary} / {accent} 占位符**，不要写死 hex（让用户能在配色面板调整）
+- **colors 字段必填**：从参考图提取
+  - **text**（字色）：文字主色，也常用作大面积深色块底
+  - **bg**（背景色）：页面整体背景色
+  - **accent**（点缀色）：装饰线/标签等
+  - 如有第二种装饰色，加 **decor**（装饰色）
+- **wrapper 和 blocks 里用到这些颜色的位置必须写成 {text} / {bg} / {accent} / {decor} 占位符**，不要写死 hex（让用户能在配色面板调整）
 
 H1 自动编号（重要）：
 - h1 模板里应该包含序号占位符，渲染时会自动替换为该 H1 的顺序号
@@ -690,15 +749,40 @@ H1 自动编号（重要）：
 - **左右间距**：wrapper 自带 padding:24px 22px，块本身不要再加左右 margin
 - **引言风格**：cover 字号同正文、不加粗、italic、颜色稍淡
 
+引言区 / 结尾区构造（重要）：
+- 用户的 cover / footer 块允许中间穿插 image / divider / 其他文字块；这些"穿插内容"的背景需要自然透出引言/结尾的底色
+- cover / footer 模板**只输出 {content} 文字**，不要在每次渲染都重复输出"区域装饰头/尾"（如 — END — 装饰小字、卷期号副标），否则用户写多个 footer 段落时这些装饰会重复出现
+- 区域分割装饰（如 — END —）的作用是"分隔正文与结尾"；和"分隔正文段落"的 divider 是不同的概念，不要混用
+
+结尾署名（重要）：
+- 结尾要带固定署名作为"对不齐网站"的水印
+- 西式风格用：© DuiBuQi_MISALIGNED · TYPESETTING（DuiBuQi 必须大小写混合，其余全大写）
+- 中式 / 手写感风格用：—「对不齐」网站排版 —
+- 署名应在 footer 的最底部
+
+图片块通用化（重要）：
+- image 模板要透明、不要用"实心色块"挡上层底色（让正文白底 / 结尾深色等背景能透出来）
+- 允许加**透明背景的相框装饰**（border + 内 padding），不会挡底色
+- 单图建议外层 padding 让图收窄居中；多图保持自动换行居中
+- 用户可以给每张图选大 / 中 / 小三档（自动调宽度），模板侧只需保证 img 是 `width:100%`
+
+引用块署名（quote 专属占位符）：
+- quote 模板里**可以**用 `{byline}` 占位符。用户在编辑器引用块下方输入署名时会自动替换成 `—— xxx`（双破折号），没填则替换为空
+- 写不写 `{byline}` 都可以，根据你的风格决定
+
+破折号约定：
+- 装饰性小横线（— END — 之类）用单 em-dash `—`
+- 引用署名前缀用双 em-dash `——`
+
 字号特例豁免（重要）：
-- 上面字号规范是默认值。如果某个块是参考图风格的"招牌"（比如报纸报头大字、海报巨型标题），**允许在那一个块上突破规范**做成更大更夸张
+- 字号规范是默认值。如果某个块是参考图风格的"招牌"（比如报纸报头大字、海报巨型标题），**允许在那一个块上突破规范**做成更大更夸张
 - 但每套模板最多 1–2 个块这样豁免，其余仍走默认
 
 额外要求：
 1. 提取参考图的主色调、字体层次和装饰风格（不要改字号/加粗规则）
 2. 保持手机端单栏布局（不要分两列）
 3. 所有样式内联，不能用 <style> 标签
-4. **所有容器/包装类标签必须用 <section>，不要用 <div>**（公众号粘贴时会过滤掉 <div> 连同其样式）
+4. **所有容器/包装类标签必须用 <section>，不要用 <div>**（公众号粘贴时会过滤掉 <div> 连同其内联样式）
 5. 只输出 JSON，不要任何说明文字`
 ];
 
@@ -720,7 +804,7 @@ let g = {
   selectedBids:new Set(),
 };
 function nextId(){return 'b'+(++g.uid)}
-function makeBlock(type){return{id:nextId(),type,content:'',images:[],caption:''}}
+function makeBlock(type){return{id:nextId(),type,content:'',images:[],caption:'',byline:''}}
 
 /* ================================================
    工具
@@ -745,20 +829,16 @@ function syncColorUI(){
   const c=g.colors;
   const sv=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v||'#ffffff'};
   const sh=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=(v||'').toUpperCase()};
-  sv('c-primary',c.primary);sh('h-primary',c.primary);
-  sv('c-secondary',c.secondary);sh('h-secondary',c.secondary);
+  sv('c-text',c.text);sh('h-text',c.text);
+  sv('c-bg',c.bg);sh('h-bg',c.bg);
   sv('c-accent',c.accent);sh('h-accent',c.accent);
-  // accent2 仅在配色里有这个字段时才显示与同步（目前主要是报纸用）
-  const row2=document.getElementById('cp-row-accent2');
-  const badgeSec=document.getElementById('badge-secondary');
-  if(c.accent2){
-    sv('c-accent2',c.accent2);sh('h-accent2',c.accent2);
-    if(row2)row2.style.display='';
-    // 有装饰色时辅色占比降到 20%（剩 5% 给装饰）
-    if(badgeSec)badgeSec.textContent='20%';
+  // decor 仅在配色里有这个字段时才显示与同步（目前主要是报纸用）
+  const rowDecor=document.getElementById('cp-row-decor');
+  if(c.decor){
+    sv('c-decor',c.decor);sh('h-decor',c.decor);
+    if(rowDecor)rowDecor.style.display='';
   }else{
-    if(row2)row2.style.display='none';
-    if(badgeSec)badgeSec.textContent='25%';
+    if(rowDecor)rowDecor.style.display='none';
   }
   updateDots();
   syncPresetBtns();
@@ -766,7 +846,7 @@ function syncColorUI(){
 
 function updateDots(){
   const c=g.colors;
-  const cols=[c.primary,c.secondary,c.accent];
+  const cols=[c.text,c.bg,c.accent];
   document.getElementById('color-dots').innerHTML=cols.map(col=>`<span class="cdot" style="background:${col}"></span>`).join('');
 }
 
@@ -776,12 +856,14 @@ function syncPresetBtns(){
   if(activeCustom){
     const btn0=document.getElementById('preset-0');
     const btn1=document.getElementById('preset-1');
+    const btn2=document.getElementById('preset-2');
     if(btn0){btn0.textContent='自定义';btn0.style.display='';btn0.classList.toggle('active',g.activePreset===0)}
     if(btn1){btn1.style.display='none'}
+    if(btn2){btn2.style.display='none'}
     return;
   }
   const presets=TMPL_PRESETS[g.template]||[];
-  ['preset-0','preset-1'].forEach((id,i)=>{
+  ['preset-0','preset-1','preset-2'].forEach((id,i)=>{
     const btn=document.getElementById(id);
     if(!btn)return;
     if(presets[i]){btn.textContent=presets[i].label;btn.style.display=''}
@@ -843,14 +925,15 @@ function wireColor(inputId,hexId,key){
     beforeSnap=null;
   });
 }
-wireColor('c-primary','h-primary','primary');
-wireColor('c-secondary','h-secondary','secondary');
+wireColor('c-text','h-text','text');
+wireColor('c-bg','h-bg','bg');
 wireColor('c-accent','h-accent','accent');
-wireColor('c-accent2','h-accent2','accent2');
+wireColor('c-decor','h-decor','decor');
 
 document.getElementById('reset-colors').onclick=()=>{applyPreset(g.activePreset>=0?g.activePreset:0)};
 document.getElementById('preset-0').onclick=()=>applyPreset(0);
 document.getElementById('preset-1').onclick=()=>applyPreset(1);
+document.getElementById('preset-2').onclick=()=>applyPreset(2);
 
 document.getElementById('btn-color').addEventListener('click',e=>{e.stopPropagation();document.getElementById('color-panel').classList.toggle('open')});
 document.addEventListener('click',e=>{if(!e.target.closest('#color-panel')&&!e.target.closest('#btn-color'))document.getElementById('color-panel').classList.remove('open')});
@@ -890,7 +973,7 @@ function switchToCustom(id){
     g.colors={...tpl.colors};
     // 判断当前是否处于"初始配色"，决定 activePreset 是否点亮
     const ic=tpl.initialColors||{};
-    const isInitial=ic.primary===tpl.colors.primary&&ic.secondary===tpl.colors.secondary&&ic.accent===tpl.colors.accent;
+    const isInitial=ic.text===tpl.colors.text&&ic.bg===tpl.colors.bg&&ic.accent===tpl.colors.accent;
     g.activePreset=isInitial?0:-1;
   }else{
     g.activePreset=-1;
@@ -1007,7 +1090,12 @@ document.getElementById('btn-unhl').onclick=()=>{
    ================================================ */
 function syncContent(bid){
   const blk=g.blocks.find(b=>b.id===bid);if(!blk)return;
-  const el=document.querySelector(`[data-bid="${bid}"]`);if(el)blk.content=el.innerHTML;
+  // 同时存在多个 data-bid 时（quote 主输入框 + 署名 / 图片 + 图注），只取主输入框
+  const els=document.querySelectorAll(`[data-bid="${bid}"]`);
+  for(const el of els){
+    if(el.hasAttribute('data-cap')||el.hasAttribute('data-byline'))continue;
+    blk.content=el.innerHTML;return;
+  }
 }
 function syncAll(){g.blocks.forEach(b=>{if(b.type!=='image'&&b.type!=='divider')syncContent(b.id)})}
 
@@ -1265,7 +1353,52 @@ function buildBlockBody(blk){
     snapBeforeEdit=null;edited=false;
   });
   div.addEventListener('input',()=>{edited=true;syncContent(blk.id);updatePreview()});
-  if(['h1','h2','h3'].includes(blk.type))div.addEventListener('keydown',e=>{if(e.key==='Enter')e.preventDefault()});
+  // Enter 行为：
+  //   - h1/h2/h3：禁止换行（标题就是单行）
+  //   - 其他块：Enter = 确认（让编辑框失去焦点，等同于点空白处），Shift+Enter = 软换行（插入 <br>，保留同块样式）
+  // 这样"在 footer 里 Enter 换行变黑色 / 跟着结尾文字脱节"的 bug 就不会再触发——
+  // 因为按 Enter 不会再插入新行；想换行请用 Shift+Enter，软换行不会跳出当前块的样式
+  div.addEventListener('keydown',e=>{
+    if(e.key!=='Enter')return;
+    if(['h1','h2','h3'].includes(blk.type)){e.preventDefault();return}
+    if(e.shiftKey)return; // Shift+Enter 走 contenteditable 默认（插入 <br>），保留同块样式
+    e.preventDefault();
+    div.blur(); // 等同于点击空白处确认编辑
+  });
+  // 引用块额外加一个"署名"输入框（可选填）
+  // 数据始终保存在 blk.byline，但仅报纸风格 quote 渲染时会真正输出（其他风格忽略）
+  // 这样切换风格时不会丢失数据
+  if(blk.type==='quote'){
+    const wrap=document.createElement('div');
+    wrap.appendChild(div);
+    const byBox=document.createElement('div');
+    byBox.className='blk-byline';
+    const byEdit=document.createElement('div');
+    byEdit.contentEditable='true';
+    byEdit.setAttribute('data-bid',blk.id);
+    byEdit.setAttribute('data-byline','1');
+    byEdit.innerHTML=blk.byline||'';
+    let bySnap=null,byEdited=false;
+    byEdit.addEventListener('focus',()=>{bySnap=snapshot();byEdited=false});
+    byEdit.addEventListener('input',()=>{blk.byline=byEdit.innerHTML;byEdited=true;updatePreview()});
+    byEdit.addEventListener('blur',()=>{
+      if(byEdited&&bySnap&&historyStack[historyStack.length-1]!==bySnap){
+        historyStack.push(bySnap);
+        if(historyStack.length>HISTORY_LIMIT)historyStack.shift();
+        redoStack.length=0;
+        refreshUndoRedoUI();
+      }
+      bySnap=null;byEdited=false;
+    });
+    // 署名也走 Enter=失焦、Shift+Enter=软换行
+    byEdit.addEventListener('keydown',e=>{
+      if(e.key!=='Enter'||e.shiftKey)return;
+      e.preventDefault();byEdit.blur();
+    });
+    byBox.appendChild(byEdit);
+    wrap.appendChild(byBox);
+    return wrap;
+  }
   return div;
 }
 
@@ -1291,10 +1424,27 @@ function buildImgBody(blk){
   // flex 自动换行，单图加 g1 类做居中
   grid.className='blk-img-grid'+(n===1?' g1':'');
   blk.images.forEach((img,i)=>{
+    if(!img.size)img.size='L'; // 老数据兜底
     const cell=document.createElement('div');
     cell.className='blk-img-cell'+(img.uploading?' uploading':'');
     cell.innerHTML=`<img src="${img.local||img.url||''}" alt="">`
-                  +`<button class="blk-img-cell-del" title="删除这张">×</button>`;
+                  +`<button class="blk-img-cell-del" title="删除这张">×</button>`
+                  +`<div class="blk-img-cell-size">`
+                  +  `<button data-sz="L" title="大">大</button>`
+                  +  `<button data-sz="M" title="中">中</button>`
+                  +  `<button data-sz="S" title="小">小</button>`
+                  +`</div>`;
+    // 当前选中的尺寸高亮
+    cell.querySelectorAll('.blk-img-cell-size button').forEach(b=>{
+      if(b.dataset.sz===img.size)b.classList.add('on');
+      b.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(img.size===b.dataset.sz)return;
+        pushHistory();
+        img.size=b.dataset.sz;
+        refreshImg(blk);updatePreview();
+      });
+    });
     cell.querySelector('.blk-img-cell-del').onclick=e=>{
       e.stopPropagation();
       pushHistory();
@@ -1311,10 +1461,23 @@ function buildImgBody(blk){
   acts.innerHTML=`<span style="font-size:11px;color:${allDone?'#16a34a':'#d97706'};align-self:center">${allDone?'✓ 全部已上传':'⏳ 上传中…'}</span>`
                 +`<button class="blk-img-actbtn" data-act="add">＋ 添加图片</button>`
                 +`<button class="blk-img-actbtn" data-act="replace">替换全部</button>`
-                +`<button class="blk-img-actbtn" data-act="clear">清空</button>`;
+                +`<button class="blk-img-actbtn" data-act="clear">清空</button>`
+                +`<span style="width:1px;height:18px;background:var(--border);align-self:center;margin:0 2px"></span>`
+                +`<span style="font-size:11px;color:#888;align-self:center">全部：</span>`
+                +`<button class="blk-img-actbtn" data-act="size-L">大</button>`
+                +`<button class="blk-img-actbtn" data-act="size-M">中</button>`
+                +`<button class="blk-img-actbtn" data-act="size-S">小</button>`;
   acts.querySelector('[data-act=add]').onclick=()=>pickImages(blk,false);
   acts.querySelector('[data-act=replace]').onclick=()=>pickImages(blk,true);
   acts.querySelector('[data-act=clear]').onclick=()=>{pushHistory();blk.images=[];refreshImg(blk);updatePreview()};
+  // 整组一键改大小：覆盖每张的 size（即使有人单独设过也会被一起重置）
+  ['L','M','S'].forEach(sz=>{
+    acts.querySelector(`[data-act="size-${sz}"]`).onclick=()=>{
+      pushHistory();
+      blk.images.forEach(i=>{i.size=sz});
+      refreshImg(blk);updatePreview();
+    };
+  });
   box.appendChild(acts);
   // 图注
   const cap=document.createElement('div');
@@ -1383,7 +1546,7 @@ function pickImages(blk,replace){
     pushHistory();
     if(replace)blk.images=[];
     const startIdx=blk.images.length;
-    files.forEach(()=>blk.images.push({local:'',url:null,uploading:true}));
+    files.forEach(()=>blk.images.push({local:'',url:null,uploading:true,size:'L'}));
     refreshImg(blk);updatePreview();
     for(let i=0;i<files.length;i++){
       const idx=startIdx+i;
@@ -1559,9 +1722,15 @@ uploadZone.onclick=()=>{
         // 给模板生成 id，追加到列表
         const id='custom_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
         // 配色：JSON 里 colors 字段 → initialColors（锁死） + colors（运行时可调）
+        // 兼容旧版 JSON（用 primary/secondary/accent2 命名）和新版（text/bg/decor）
         // 如果 JSON 没给 colors，用一套中性默认值兜底
-        const dc=tpl.colors||{primary:'#1c1c1c',secondary:'#f5f5f5',accent:'#666666'};
-        const initialColors={primary:dc.primary,secondary:dc.secondary,accent:dc.accent};
+        const dc=tpl.colors||{};
+        const initialColors={
+          text:   dc.text   ?? dc.primary   ?? '#1c1c1c',
+          bg:     dc.bg     ?? dc.secondary ?? '#f5f5f5',
+          accent: dc.accent ?? '#666666',
+        };
+        if(dc.decor||dc.accent2)initialColors.decor=dc.decor??dc.accent2;
         const stored={
           id,
           name:tpl.name||'自定义模板',
@@ -1608,36 +1777,55 @@ function processMarks(html,accentColor){
     .replace(/<\/mark>/g,'</span>');
 }
 
-/* 图片块通用渲染：单图撑满、多图按固定宽度 + 居中 + 自动换行 + 保持原比例（不裁剪） */
+/* 图片块通用渲染：透明背景、不带"挡住底色的实心色块"，让底层风格背景自然透出
+   单图：左右 padding 跟 size 联动（L=32px / M=80px / S=130px），让小图视觉更收窄居中
+        支持 opt.border / opt.padding / opt.filter 给图片加"相框"装饰（不会挡住底色）
+   多图：每张 cell 宽度按各自 size 决定（L=150 / M=110 / S=80），自动换行 + 居中
+        相框装饰也对每张 cell 生效（不会挡底色）
+   入参 opt 支持 capColor/capStyle/margin/border/padding/filter */
+const SIZE_MAP = {
+  // 单图：外层 padding（左右各加这么多，让图视觉收窄）
+  singlePad: { L:32, M:80, S:110 },
+  // 多图：每张 cell 的宽度
+  multiW:    { L:150, M:110, S:95 },
+};
 function renderImage(blk,c,opt){
+  opt=opt||{};
   const imgs=(blk.images||[]).filter(i=>i.url||i.local);
   if(imgs.length===0)return'';
-  const srcs=imgs.map(i=>i.url||i.local);
-  const radius=opt.radius||'4px';
-  const border=opt.border||'';
-  const padding=opt.padding||'0';
-  const margin=opt.margin||'18px 16px';
+  const radius=opt.radius||'0';
+  const margin=opt.margin||'18px 0';
+  const filterStyle=opt.filter?`filter:${opt.filter};`:'';
+  // 相框：border + padding 直接挂在中层 section 上，背景透明，让底色透出
+  const frameStyle=(opt.border||opt.padding)
+    ?`${opt.border?`border:${opt.border};`:''}${opt.padding?`padding:${opt.padding};`:''}box-sizing:border-box;background:transparent;`
+    :'';
   let inner='';
-  if(srcs.length===1){
-    // 单图：撑满容器宽度，保持原比例
-    inner=`<img src="${srcs[0]}" style="width:100%;height:auto;display:block;border-radius:${radius};" />`;
+  if(imgs.length===1){
+    const img=imgs[0];
+    const size=img.size||'L';
+    const pad=SIZE_MAP.singlePad[size]??SIZE_MAP.singlePad.L;
+    const src=img.url||img.local;
+    const imgTag=`<img src="${src}" style="width:100%;height:auto;display:block;border-radius:${radius};${filterStyle}" />`;
+    const framed=frameStyle?`<section style="${frameStyle}">${imgTag}</section>`:imgTag;
+    inner=`<section style="padding:0 ${pad}px;text-align:center;">${framed}</section>`;
   }else{
-    // 多图：每张 ~150px 宽，inline-block + text-align:center 实现居中 + 自动换行
-    // 行内 gap 用 margin（公众号兼容 flex 较差，gap 不可靠）
-    const W=opt.thumbW||150;
-    const cells=srcs.map(s=>
-      `<span style="display:inline-block;width:${W}px;margin:4px;vertical-align:top;">`
-      +`<img src="${s}" style="display:block;width:100%;height:auto;border-radius:${radius};" />`
-      +`</span>`
-    ).join('');
+    // 多图：每张 inline-block，宽度跟自己的 size 联动；相框对每张 cell 生效
+    const cells=imgs.map(img=>{
+      const size=img.size||'L';
+      const W=SIZE_MAP.multiW[size]??SIZE_MAP.multiW.L;
+      const src=img.url||img.local;
+      const imgTag=`<img src="${src}" style="display:block;width:100%;height:auto;border-radius:${radius};${filterStyle}" />`;
+      const framed=frameStyle?`<section style="${frameStyle}">${imgTag}</section>`:imgTag;
+      return `<span style="display:inline-block;width:${W}px;margin:4px;vertical-align:top;">${framed}</span>`;
+    }).join('');
     inner=`<section style="text-align:center;font-size:0;">${cells}</section>`;
   }
   // 图注：仅当用户实际填了内容时才输出
   const cap=processMarks(blk.caption||'',c.accent).trim();
   const capHtml=cap?`<p style="font-size:12px;color:${opt.capColor||'#888'};text-align:center;margin:8px 0 0;line-height:1.6;${opt.capStyle||''}">${cap}</p>`:'';
-  const frame=border?`border:${border};padding:${padding};`:`padding:${padding};`;
-  // 注意：必须用 <section>，公众号粘贴时会过滤掉 <div> 标签连同其内联样式
-  return`<section style="margin:${margin};${frame}background:transparent;text-align:center;">${inner}${capHtml}</section>`;
+  // 外层始终透明，让上层（正文白底 / 结尾深色块 / 引言深色块）的背景能透出来
+  return`<section style="margin:${margin};background:transparent;text-align:center;">${inner}${capHtml}</section>`;
 }
 
 function generateHTML(forCopy=false){
@@ -1648,15 +1836,16 @@ function generateHTML(forCopy=false){
   let wrapStyle;
   if(activeCustom){
     wrapStyle=activeCustom.wrapper||'';
-    // 占位符替换：让 wrapper 里的 {primary}/{secondary}/{accent} 跟着配色面板变
+    // 占位符替换：让 wrapper 里的 {text}/{bg}/{accent}/{decor} 跟着配色面板变
+    // 兼容旧版占位符 {primary}/{secondary}/{accent2}（同义于 {text}/{bg}/{decor}）
     wrapStyle=wrapStyle
-      .replace(/\{primary\}/g,c.primary||'#000')
-      .replace(/\{secondary\}/g,c.secondary||'#fff')
-      .replace(/\{accent\}/g,c.accent||'#666');
+      .replace(/\{text\}|\{primary\}/g,c.text||'#000')
+      .replace(/\{bg\}|\{secondary\}/g,c.bg||'#fff')
+      .replace(/\{accent\}/g,c.accent||'#666')
+      .replace(/\{decor\}|\{accent2\}/g,c.decor||c.accent||'#666');
     // 预览时去掉模板自带的 max-width，让它撑满预览面板
     if(!forCopy)wrapStyle=wrapStyle.replace(/max-width:[^;]+;?/g,'')+'max-width:100%;';
   }else if(t===3){
-    // 便签：楷体 + 格子纸背景，左右留白由 wrapper padding 提供
     wrapStyle=[
       `font-family:'STKaiti','KaiTi','楷体','FangSong','SimSun','Courier New',serif`,
       paperBg(c,g.paper||'grid-mid'),
@@ -1664,14 +1853,12 @@ function generateHTML(forCopy=false){
       `margin:0 auto`,`padding:24px 22px`,`line-height:1.85`,
     ].join(';');
   }else if(t===2){
-    // 报纸：宋体 + 米色旧报纸 + 暖光晕纹理
-    // padding-top:0 让封面深底色直接贴到顶部，没有米色露白
     const tint=hexToRgba(c.accent,.08);
     const tint2=hexToRgba(c.accent,.06);
     wrapStyle=[
       `font-family:'Noto Serif SC','Songti SC','SimSun','STSong',serif`,
-      `color:${c.primary}`,
-      `background-color:${c.secondary}`,
+      `color:${c.text}`,
+      `background-color:${c.bg}`,
       `background-image:radial-gradient(circle at 20% 80%,${tint} 0%,transparent 50%),radial-gradient(circle at 80% 20%,${tint2} 0%,transparent 50%)`,
       `max-width:${forCopy?'677px':'100%'}`,
       `margin:0 auto`,`padding:0 0 28px`,`line-height:1.85`,
@@ -1679,26 +1866,127 @@ function generateHTML(forCopy=false){
   }else{
     wrapStyle=[
       `font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif`,
-      `background-color:${c.secondary}`,
+      `background-color:${c.bg}`,
       `max-width:${forCopy?'677px':'100%'}`,
       `margin:0 auto`,`padding:0`,`line-height:1.7`,
     ].join(';');
   }
-  // 渲染时维护 H1 计数器，让每个 H1 知道自己是第几个
+
+  // ============ 区域识别（宽松版）============
+  // 引言区：开头到"最后一个 cover"为止；结尾区：从"第一个 footer"到末尾
+  // 中间的 image / divider / 其他块也会被吸进对应区域，作为该区域的内容
+  // 这样"结尾后面再插张图"能落在结尾深色底上
+  const blocks=g.blocks;
+  let coverEnd=-1, footerStart=-1;
+  for(let i=0;i<blocks.length;i++){
+    if(blocks[i].type==='cover')coverEnd=i;
+    if(blocks[i].type==='footer'&&footerStart<0)footerStart=i;
+  }
+  if(footerStart>=0&&footerStart<=coverEnd)coverEnd=footerStart-1;
+
+  // 渲染时维护 H1 计数器
   let h1Idx=0;
-  const inner=g.blocks.map(blk=>{
-    const html=processMarks(blk.content||'',c.accent);
-    const h1Num=blk.type==='h1'?(++h1Idx):0;
-    return renderBlk(blk,t,c,html,activeCustom,h1Num);
-  }).join('');
+  const renderRange=(from,to,region)=>{
+    let html='';
+    for(let i=from;i<=to;i++){
+      const blk=blocks[i];
+      const ihtml=processMarks(blk.content||'',c.accent);
+      const h1Num=blk.type==='h1'?(++h1Idx):0;
+      html+=renderBlk(blk,t,c,ihtml,activeCustom,h1Num,{region});
+    }
+    return html;
+  };
+
+  let inner='';
+  // 引言区
+  if(coverEnd>=0){
+    const innerCover=renderRange(0,coverEnd,'cover');
+    inner+=activeCustom?innerCover:wrapCoverRegion(t,c,innerCover);
+  }
+  // 主体区
+  const mainFrom=coverEnd+1, mainTo=footerStart>=0?footerStart-1:blocks.length-1;
+  if(mainFrom<=mainTo)inner+=renderRange(mainFrom,mainTo,'main');
+  // 结尾区
+  if(footerStart>=0){
+    const innerFooter=renderRange(footerStart,blocks.length-1,'footer');
+    inner+=activeCustom?innerFooter:wrapFooterRegion(t,c,innerFooter);
+  }
   return `<section style="${wrapStyle}">${inner}</section>`;
 }
 
-function renderBlk(blk,t,c,html,activeCustom,h1Num){
+// ============ 区域装饰：引言区外壳 ============
+// 把整个引言区（cover 文本 + 区域内的 image/divider 等）包在装饰里
+// 区域装饰头/尾固定，不会重复出现
+function wrapCoverRegion(t,c,innerHtml){
+  const PX=TYPO.pagePadX;
+  if(t===1){
+    // 杂志：深色 hero 底，顶/底装饰小字
+    return`<section style="background-color:${c.text};padding:34px ${PX}px 28px;text-align:center;">`
+          +`<p style="color:${c.accent};font-size:10px;letter-spacing:7px;margin:0 0 14px;">— FEATURE —</p>`
+          +innerHtml
+          +`<p style="color:${c.accent};font-size:13px;margin:14px 0 0;letter-spacing:4px;">◆</p>`
+          +`</section>`;
+  }
+  if(t===2){
+    // 报纸：深色头版，上下两道装饰小字
+    const dec=c.decor||c.accent;
+    return`<section style="background-color:${c.text};text-align:center;padding:30px ${PX}px;">`
+          +`<section style="display:flex;justify-content:space-between;font-size:11px;color:${dec};letter-spacing:1px;margin-bottom:10px;text-transform:uppercase;">`
+          +`<span>Vol. MMXXVI · No. 001</span><span>今日版 · BREAKING NEWS</span>`
+          +`</section>`
+          +innerHtml
+          +`<p style="font-size:11px;color:${dec};margin:8px 0 0;letter-spacing:2px;text-transform:uppercase;">Official Gazette · Daily Edition</p>`
+          +`</section>`;
+  }
+  if(t===3){
+    // 便签：透明背景，结尾装饰是底部的小色条
+    const heroSoft=hexToRgba(c.text,.4);
+    return`<section style="text-align:center;padding:18px 0 22px;margin:6px 0 14px;">`
+          +innerHtml
+          +`<section style="width:48px;height:2px;background:${heroSoft};margin:14px auto 0;border-radius:1px;"></section>`
+          +`</section>`;
+  }
+  return innerHtml;
+}
+
+// ============ 区域装饰：结尾区外壳 ============
+// 三个风格都加固定署名"© DuiBuQi_MISALIGNED · TYPESETTING" / "—「对不齐」网站排版 —"
+// 杂志额外保留 — END — 作为分割（仅装饰、不承担署名作用）
+function wrapFooterRegion(t,c,innerHtml){
+  const PX=TYPO.pagePadX;
+  if(t===1){
+    // 杂志：— END — 顶部装饰（保留作为正文 / 结尾的分割）+ 内容 + 署名
+    return`<section style="background-color:${c.text};padding:24px ${PX}px 26px;margin-top:28px;text-align:center;">`
+          +`<p style="color:${c.accent};font-size:10px;letter-spacing:5px;margin:0 0 14px;">— END —</p>`
+          +innerHtml
+          +`<p style="color:${c.accent};font-size:10px;letter-spacing:2px;margin:14px 0 0;">&copy; DuiBuQi_MISALIGNED &middot; TYPESETTING</p>`
+          +`</section>`;
+  }
+  if(t===2){
+    // 报纸：双横线作为分割 + 内容 + 署名
+    const dec=c.decor||c.accent;
+    return`<section style="margin:32px ${PX}px 0;padding-top:16px;border-top:3px double ${c.accent};text-align:center;color:${c.accent};font-size:${TYPO.size.footer}px;line-height:${TYPO.lh.footer};">`
+          +innerHtml
+          +`<section style="font-size:10px;letter-spacing:2px;color:${dec};margin-top:10px;">&copy; DuiBuQi_MISALIGNED &middot; TYPESETTING</section>`
+          +`</section>`;
+  }
+  if(t===3){
+    // 便签：上方一根淡线作为分割 + 内容 + 署名
+    const heroSoft=hexToRgba(c.text,.4);
+    const kai=`'STKaiti','KaiTi','楷体','FangSong','SimSun','Courier New',serif`;
+    return`<section style="margin:32px 0 0;padding-top:20px;border-top:1px solid ${heroSoft};text-align:center;">`
+          +innerHtml
+          +`<p style="font-family:${kai};font-size:12px;color:${hexToRgba(c.text,.4)};margin:10px 0 0;font-style:italic;">—「对不齐」网站排版 —</p>`
+          +`</section>`;
+  }
+  return innerHtml;
+}
+
+function renderBlk(blk,t,c,html,activeCustom,h1Num,opt){
   if(activeCustom)return tmplCustom(blk,html,activeCustom,h1Num);
-  if(t===1)return tmpl1(blk,c,html,h1Num);
-  if(t===2)return tmpl2(blk,c,html,h1Num);
-  if(t===3)return tmpl3(blk,c,html,h1Num);
+  if(t===1)return tmpl1(blk,c,html,h1Num,opt);
+  if(t===2)return tmpl2(blk,c,html,h1Num,opt);
+  if(t===3)return tmpl3(blk,c,html,h1Num,opt);
   return '';
 }
 
@@ -1708,58 +1996,55 @@ function renderBlk(blk,t,c,html,activeCustom,h1Num){
    字号 / 加粗 / 行高 / 缩进 全部走 TYPO 规范
    注意：所有色块容器统一用 <section>，公众号粘贴时会剥掉 <div> 及其样式
    ================================================ */
-function tmpl1(blk,c,html,h1Num){
-  const hero=c.primary;
+function tmpl1(blk,c,html,h1Num,opt){
+  const hero=c.text;
   const PX=TYPO.pagePadX;
+  const region=(opt&&opt.region)||'main';
   switch(blk.type){
     case 'cover':
-      // 引言：italic 淡化、不加粗；用统一字号
+      // 区域装饰由 wrapCoverRegion 提供，这里只输出文本
       if(!html.trim())return'';
-      return`<section style="background-color:${hero};padding:34px ${PX}px 28px;text-align:center;">`
-            +`<p style="color:${c.accent};font-size:10px;letter-spacing:7px;margin:0 0 14px;">— FEATURE —</p>`
-            +`<p style="color:${c.secondary};font-size:${TYPO.size.cover}px;line-height:${TYPO.lh.cover};font-style:italic;margin:0;">${html}</p>`
-            +`<p style="color:${c.accent};font-size:13px;margin:14px 0 0;letter-spacing:4px;">◆</p>`
-            +`</section>`;
+      return`<p style="color:${c.bg};font-size:${TYPO.size.cover}px;line-height:${TYPO.lh.cover};font-style:italic;margin:0 0 6px;">${html}</p>`;
     case 'h1':
       if(!html.trim())return'';
       return`<section style="margin:30px 0 14px;padding:0 ${PX}px;">`
             +`<p style="color:${c.accent};font-size:9px;letter-spacing:5px;margin:0 0 8px;text-transform:uppercase;">NUMBER ${numPad2(h1Num)}</p>`
-            +`<h2 style="font-family:Georgia,'Times New Roman',STSong,serif;font-size:${TYPO.size.h1}px;font-weight:bold;color:${c.primary};line-height:${TYPO.lh.h1};margin:0 0 10px;">${html}</h2>`
+            +`<h2 style="font-family:Georgia,'Times New Roman',STSong,serif;font-size:${TYPO.size.h1}px;font-weight:bold;color:${c.text};line-height:${TYPO.lh.h1};margin:0 0 10px;">${html}</h2>`
             +`<section style="width:36px;height:2px;background-color:${c.accent};"></section>`
             +`</section>`;
     case 'h2':
       if(!html.trim())return'';
-      return`<h3 style="font-family:Georgia,STSong,serif;font-size:${TYPO.size.h2}px;font-weight:bold;color:${c.primary};margin:24px ${PX}px 10px;padding-left:13px;border-left:3px solid ${c.accent};line-height:${TYPO.lh.h2};">${html}</h3>`;
+      return`<h3 style="font-family:Georgia,STSong,serif;font-size:${TYPO.size.h2}px;font-weight:bold;color:${c.text};margin:24px ${PX}px 10px;padding-left:13px;border-left:3px solid ${c.accent};line-height:${TYPO.lh.h2};">${html}</h3>`;
     case 'h3':
-      // 不加粗、用规范字号、加横向小色条标识
       if(!html.trim())return'';
-      return`<h4 style="font-size:${TYPO.size.h3}px;font-weight:bold;color:${c.primary};margin:20px ${PX}px 8px;line-height:${TYPO.lh.h3};">${html}</h4>`;
+      return`<h4 style="font-size:${TYPO.size.h3}px;font-weight:bold;color:${c.text};margin:20px ${PX}px 8px;line-height:${TYPO.lh.h3};">${html}</h4>`;
     case 'body':
       if(!html.trim())return'';
-      return`<p style="font-size:${TYPO.size.body}px;line-height:${TYPO.lh.body};color:${c.primary};margin:0 ${PX}px 14px;text-indent:${TYPO.indentBody};">${html}</p>`;
+      return`<p style="font-size:${TYPO.size.body}px;line-height:${TYPO.lh.body};color:${c.text};margin:0 ${PX}px 14px;text-indent:${TYPO.indentBody};">${html}</p>`;
     case 'quote':
       if(!html.trim())return'';
       return`<section style="background-color:${hero};margin:20px ${PX}px;padding:20px 22px;">`
-            +`<p style="color:${c.secondary};font-size:${TYPO.size.quote}px;line-height:${TYPO.lh.quote};font-style:italic;margin:0;border-left:3px solid ${c.accent};padding-left:14px;">${html}</p>`
+            +`<p style="color:${c.bg};font-size:${TYPO.size.quote}px;line-height:${TYPO.lh.quote};font-style:italic;margin:0;border-left:3px solid ${c.accent};padding-left:14px;">${html}</p>`
             +`</section>`;
     case 'image':{
+      // 通用透明图片（不带实心色块，保留细描边相框），cover/footer 区域里也能透出深底
+      // main 区域：margin 左右 22px（与 body 块同左边距）+ renderImage 内层 32px padding = 与正文 2em 首字符对齐
+      // cover/footer 区域：区域 wrapper 自带 22px 内缩，所以这里只用 0
       return renderImage(blk,c,{
-        margin:`18px ${PX}px`,
+        margin: region==='main' ? `18px ${PX}px` : `14px 0`,
         radius:'2px',
-        border:`1px solid ${c.accent}`,
-        padding:'6px',
-        capColor:c.primary,
+        border: region==='main' ? `1px solid ${c.accent}` : '',
+        padding: region==='main' ? '6px' : '',
+        capColor: region==='main' ? c.text : c.bg,
         capStyle:'font-style:italic',
       });
     }
     case 'divider':
       return`<p style="text-align:center;margin:26px ${PX}px;color:${c.accent};letter-spacing:14px;font-size:14px;">◆  ◆  ◆</p>`;
     case 'footer':
+      // 区域装饰由 wrapFooterRegion 提供
       if(!html.trim())return'';
-      return`<section style="background-color:${hero};padding:24px ${PX}px 26px;margin-top:28px;text-align:center;">`
-            +`<p style="color:${c.accent};font-size:10px;letter-spacing:5px;margin:0 0 8px;">— END —</p>`
-            +`<p style="color:${c.secondary};font-size:${TYPO.size.footer}px;line-height:${TYPO.lh.footer};margin:0;">${html}</p>`
-            +`</section>`;
+      return`<p style="color:${c.bg};font-size:${TYPO.size.footer}px;line-height:${TYPO.lh.footer};margin:0 0 6px;">${html}</p>`;
     default:return'';
   }
 }
@@ -1770,34 +2055,24 @@ function tmpl1(blk,c,html,h1Num){
    注意：quote 是这个风格的灵魂（带大引号、署名、米色底色），有意保留特殊样式
    注意：所有色块容器统一用 <section>，公众号粘贴时会剥掉 <div> 及其样式
    ================================================ */
-function tmpl2(blk,c,html,h1Num){
-  const hero=c.primary;
+function tmpl2(blk,c,html,h1Num,opt){
+  const hero=c.text;
   const PX=TYPO.pagePadX;
   const accentSoft=hexToRgba(c.accent,.08);
   const accentMid=hexToRgba(c.accent,.6);
-  const dec=c.accent2||c.accent; // 装饰文字色（暗红等），缺省回退到 accent
+  const dec=c.decor||c.accent;
   const serif=`'Noto Serif SC','Songti SC','SimSun','STSong',serif`;
+  const region=(opt&&opt.region)||'main';
   switch(blk.type){
     case 'cover':
-      // 报纸引言：照搬"复古报纸.json"原数据，30px / weight:900 / letter-spacing:2px
-      // 这是这份风格的招牌，刻意不与 TYPO.size.cover 一致
-      // 在原数据基础上仅做两点改动：
-      //   a) 加深色底（primary），与正文浅底形成对比；引言文字 → secondary（浅色）
-      //   b) 去掉原 border-bottom 双横线（深底已经分隔了引言和正文，不再需要）
-      //   装饰文字（卷期号、副标）→ accent2 暗红，作为风格标识色
+      // 区域装饰由 wrapCoverRegion 提供（深色头版 + 装饰小字）
+      // 这里只输出报头大字（30px / weight:900 / letter-spacing:2px 是这套风格灵魂）
       if(!html.trim())return'';
-      return`<section style="background-color:${hero};text-align:center;padding:30px ${PX}px;">`
-            +`<section style="display:flex;justify-content:space-between;font-size:11px;color:${dec};letter-spacing:1px;margin-bottom:10px;text-transform:uppercase;">`
-            +`<span>Vol. MMXXVI · No. 001</span><span>今日版 · BREAKING NEWS</span>`
-            +`</section>`
-            +`<h1 style="font-family:${serif};font-size:30px;font-weight:900;color:${c.secondary};margin:0;line-height:1.2;letter-spacing:2px;">${html}</h1>`
-            +`<p style="font-size:11px;color:${dec};margin:8px 0 0;letter-spacing:2px;text-transform:uppercase;">Official Gazette · Daily Edition</p>`
-            +`</section>`;
+      return`<h1 style="font-family:${serif};font-size:30px;font-weight:900;color:${c.bg};margin:0;line-height:1.2;letter-spacing:2px;">${html}</h1>`;
     case 'h1':
-      // 一级标题：NUMBER · ONE 装饰标签（装饰色暗红）+ 黑棕大标题
       if(!html.trim())return'';
       return`<section style="margin:28px ${PX}px 14px;">`
-            +`<span style="display:inline-block;background:${dec};color:${c.secondary};font-size:11px;padding:3px 10px;letter-spacing:1px;margin-bottom:10px;">NUMBER · ${numEng(h1Num)}</span>`
+            +`<span style="display:inline-block;background:${dec};color:${c.bg};font-size:11px;padding:3px 10px;letter-spacing:1px;margin-bottom:10px;">NUMBER · ${numEng(h1Num)}</span>`
             +`<h2 style="font-family:${serif};font-size:${TYPO.size.h1}px;font-weight:bold;color:${hero};margin:0;line-height:${TYPO.lh.h1};letter-spacing:1px;">${html}</h2>`
             +`</section>`;
     case 'h2':
@@ -1810,51 +2085,38 @@ function tmpl2(blk,c,html,h1Num){
       if(!html.trim())return'';
       return`<p style="font-family:${serif};font-size:${TYPO.size.body}px;color:${hero};margin:0 ${PX}px 16px;line-height:${TYPO.lh.body};text-indent:${TYPO.indentBody};">${html}</p>`;
     case 'quote':
-      // 风格灵魂：保留原 JSON 的 15px / italic / 大引号 / 署名 / 米色双线
       if(!html.trim())return'';
-      return`<section style="margin:22px ${PX}px;padding:18px 16px;text-align:center;color:${hexToRgba(c.primary,.78)};font-size:15px;line-height:1.9;font-style:italic;border-top:1px solid ${accentMid};border-bottom:1px solid ${accentMid};background:${accentSoft};">`
+      // 署名（可选）：用户在编辑器输入框里写了什么就显示什么；空则不输出整行
+      // 仅这一处用 ——（破折号），跟"— END —"等装饰小横线区分
+      const byline=processMarks(blk.byline||'',c.accent).trim();
+      const bylineHtml=byline?`<section style="font-size:12px;color:${dec};margin-top:12px;font-style:normal;letter-spacing:1px;">—— ${byline}</section>`:'';
+      return`<section style="margin:22px ${PX}px;padding:18px 16px;text-align:center;color:${hexToRgba(c.text,.78)};font-size:15px;line-height:1.9;font-style:italic;border-top:1px solid ${accentMid};border-bottom:1px solid ${accentMid};background:${accentSoft};">`
             +`<section style="font-size:28px;color:${dec};line-height:1;margin-bottom:6px;">&ldquo;</section>`
             +`<section>${html}</section>`
-            +`<section style="font-size:12px;color:${dec};margin-top:12px;font-style:normal;letter-spacing:1px;">— 本报特约评论员</section>`
+            +bylineHtml
             +`</section>`;
     case 'image':{
-      // 老照片框：米色厚卡 + 阴影 + sepia 滤镜
-      const imgs=(blk.images||[]).filter(i=>i.url||i.local);
-      if(imgs.length===0)return'';
-      const cap=processMarks(blk.caption||'',c.accent).trim();
-      const photoFrame=hexToRgba(c.accent,.18);
-      // 单图特殊老照片包装；多图退回到 renderImage 的网格
-      if(imgs.length===1){
-        const src=imgs[0].url||imgs[0].local;
-        // 仅当用户填了图注才显示；不强迫
-        const capHtml=cap?`<p style="font-size:12px;color:${c.accent};margin:10px 0 0;font-style:italic;letter-spacing:1px;">▲ ${cap}</p>`:'';
-        return`<section style="margin:22px ${PX}px;text-align:center;">`
-              +`<section style="display:inline-block;padding:8px;background:${photoFrame};border:1px solid ${accentMid};">`
-              +`<img src="${src}" style="display:block;max-width:100%;height:auto;filter:sepia(10%) contrast(95%);" />`
-              +`</section>`
-              +capHtml
-              +`</section>`;
-      }
+      // 通用透明图片（保留报纸老照片细边 + sepia 滤镜），cover/footer 区域里也透出深底
+      // main 区域：margin 左右 22px + 内层 32px padding，与正文首字符对齐
+      // cover/footer 区域：区域 wrapper 自带 22px 内缩，这里只用 0
       return renderImage(blk,c,{
-        margin:`22px ${PX}px`,
+        margin: region==='main' ? `22px ${PX}px` : `14px 0`,
         radius:'0',
-        border:`1px solid ${accentMid}`,
-        padding:'6px',
-        capColor:c.accent,
+        border: region==='main' ? `1px solid ${accentMid}` : '',
+        padding: region==='main' ? '6px' : '',
+        filter: region==='main' ? 'sepia(10%) contrast(95%)' : '',
+        capColor: region==='main' ? c.accent : c.bg,
         capStyle:`font-style:italic;letter-spacing:1px`,
       });
     }
     case 'divider':
-      // 虚线分隔
       return`<section style="margin:22px ${PX}px;text-align:center;">`
             +`<section style="height:1px;background:repeating-linear-gradient(90deg,${c.accent},${c.accent} 4px,transparent 4px,transparent 8px);"></section>`
             +`</section>`;
     case 'footer':
+      // 区域装饰由 wrapFooterRegion 提供（双横线 + 署名）
       if(!html.trim())return'';
-      return`<section style="margin:32px ${PX}px 0;padding-top:16px;border-top:3px double ${c.accent};text-align:center;color:${c.accent};font-size:${TYPO.size.footer}px;line-height:${TYPO.lh.footer};">`
-            +`<section style="margin-bottom:10px;">${html}</section>`
-            +`<section style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:${dec};">&copy; Official Gazette &middot; All Rights Reserved</section>`
-            +`</section>`;
+      return`<section style="margin:0 0 6px;">${html}</section>`;
     default:return'';
   }
 }
@@ -1866,28 +2128,25 @@ function tmpl2(blk,c,html,h1Num){
    ================================================ */
 function paperBg(c,paper){
   // 用网格线绘制背景，公众号兼容；线条做得更淡（.12）以减少视觉干扰
-  const line=hexToRgba(c.primary,.12);
+  const line=hexToRgba(c.text,.12);
   const size=paper==='grid-sm'?18:24;
-  return `background-color:${c.secondary};background-image:linear-gradient(${line} 1px,transparent 1px),linear-gradient(90deg,${line} 1px,transparent 1px);background-size:${size}px ${size}px;`;
+  return `background-color:${c.bg};background-image:linear-gradient(${line} 1px,transparent 1px),linear-gradient(90deg,${line} 1px,transparent 1px);background-size:${size}px ${size}px;`;
 }
 
-function tmpl3(blk,c,html,h1Num){
+function tmpl3(blk,c,html,h1Num,opt){
   // 楷体优先，西文用 Courier 营造手写打字机感，最后退回衬线
   const kai=`'STKaiti','KaiTi','楷体','FangSong','SimSun','Courier New',serif`;
-  const hero=c.primary;
-  const heroSoft=hexToRgba(c.primary,.4);   // 边框等用半透明，让格子能透
+  const hero=c.text;
+  const heroSoft=hexToRgba(c.text,.4);
   // 引用块底色：直接用点缀色（不透明），让用户改色无障碍
   const quoteBg=c.accent;
+  const region=(opt&&opt.region)||'main';
   switch(blk.type){
     case 'cover':
-      // 引言：italic 淡灰、不加粗
+      // 区域装饰由 wrapCoverRegion 提供，这里只输出文本
       if(!html.trim())return'';
-      return`<section style="text-align:center;padding:18px 0 22px;margin:6px 0 14px;">`
-            +`<p style="font-family:${kai};font-size:${TYPO.size.cover}px;color:${hexToRgba(c.primary,.6)};line-height:${TYPO.lh.cover};margin:0;font-style:italic;">${html}</p>`
-            +`<section style="width:48px;height:2px;background:${heroSoft};margin:14px auto 0;border-radius:1px;"></section>`
-            +`</section>`;
+      return`<p style="font-family:${kai};font-size:${TYPO.size.cover}px;color:${hexToRgba(c.text,.6)};line-height:${TYPO.lh.cover};margin:0;font-style:italic;">${html}</p>`;
     case 'h1':
-      // 加"其 壹"装饰文字（楷体上标，文艺感）
       if(!html.trim())return'';
       return`<section style="margin:30px 0 14px;">`
             +`<p style="font-family:${kai};color:${heroSoft};font-size:13px;letter-spacing:6px;margin:0 0 6px;">其 ${numCnUpper(h1Num)}</p>`
@@ -1900,7 +2159,6 @@ function tmpl3(blk,c,html,h1Num){
       if(!html.trim())return'';
       return`<h4 style="font-family:${kai};font-size:${TYPO.size.h3}px;font-weight:bold;color:${hero};margin:20px 0 10px;line-height:${TYPO.lh.h3};">${html}</h4>`;
     case 'body':
-      // 正文：首行缩进 2 字
       if(!html.trim())return'';
       return`<p style="font-family:${kai};font-size:${TYPO.size.body}px;color:${hero};margin:0 0 16px;line-height:${TYPO.lh.body};text-indent:${TYPO.indentBody};">${html}</p>`;
     case 'quote':
@@ -1909,23 +2167,22 @@ function tmpl3(blk,c,html,h1Num){
             +`<p style="font-family:${kai};font-size:${TYPO.size.quote}px;color:${hero};line-height:${TYPO.lh.quote};margin:0;font-style:italic;">${html}</p>`
             +`</section>`;
     case 'image':{
+      // 通用透明图片（保留便签厚白边相框），能透出格子纸背景
+      // main 区域：白边 6px solid bg；cover/footer 区域：去掉相框（区域装饰已经够丰富）
       return renderImage(blk,c,{
         margin:'20px 0',
         radius:'0',
-        border:`6px solid ${hexToRgba(c.secondary,.95)}`,
-        padding:'0',
-        capColor:hexToRgba(c.primary,.55),
+        border: region==='main' ? `6px solid ${hexToRgba(c.bg,.95)}` : '',
+        capColor:hexToRgba(c.text,.55),
         capStyle:`font-family:${kai};font-size:13px;font-style:italic`,
       });
     }
     case 'divider':
       return`<p style="text-align:center;margin:24px 0;color:${heroSoft};font-size:16px;letter-spacing:8px;">* * *</p>`;
     case 'footer':
+      // 区域装饰由 wrapFooterRegion 提供（顶部细线 + 署名）
       if(!html.trim())return'';
-      return`<section style="margin:32px 0 0;padding-top:20px;border-top:1px solid ${heroSoft};text-align:center;">`
-            +`<p style="font-family:${kai};font-size:${TYPO.size.footer}px;color:${hexToRgba(c.primary,.55)};margin:0 0 10px;line-height:${TYPO.lh.footer};font-style:italic;">${html}</p>`
-            +`<p style="font-family:${kai};font-size:12px;color:${hexToRgba(c.primary,.4)};margin:0;font-style:italic;">— 手写于格子纸 —</p>`
-            +`</section>`;
+      return`<p style="font-family:${kai};font-size:${TYPO.size.footer}px;color:${hexToRgba(c.text,.55)};margin:0 0 6px;line-height:${TYPO.lh.footer};font-style:italic;">${html}</p>`;
     default:return'';
   }
 }
@@ -1936,13 +2193,15 @@ function tmpl3(blk,c,html,h1Num){
 function tmplCustom(blk,html,activeCustom,h1Num){
   if(!activeCustom)return`<p style="color:#999;text-align:center;padding:20px;font-size:13px;">请先导入自定义模板</p>`;
   const tpls=activeCustom.blocks||{};
-  // 把 {primary}/{secondary}/{accent} 占位符替换为当前 g.colors（由配色面板控制）
+  // 把 {text}/{bg}/{accent}/{decor} 占位符替换为当前 g.colors（由配色面板控制）
+  // 兼容旧版占位符 {primary}/{secondary}/{accent2}
   // 旧版/写死颜色的 JSON 没有占位符，这里 noop
   const c=g.colors||{};
   const fillColors=s=>String(s||'')
-    .replace(/\{primary\}/g,c.primary||'#000')
-    .replace(/\{secondary\}/g,c.secondary||'#fff')
-    .replace(/\{accent\}/g,c.accent||'#666');
+    .replace(/\{text\}|\{primary\}/g,c.text||'#000')
+    .replace(/\{bg\}|\{secondary\}/g,c.bg||'#fff')
+    .replace(/\{accent\}/g,c.accent||'#666')
+    .replace(/\{decor\}|\{accent2\}/g,c.decor||c.accent||'#666');
   // H1 自动编号占位符：用户在 JSON 里可写 {number} / {numberPad2} / {numberEng} / {numberCn}
   const fillNum=s=>String(s||'')
     .replace(/\{numberPad2\}/g,h1Num?numPad2(h1Num):'')
@@ -1962,6 +2221,11 @@ function tmplCustom(blk,html,activeCustom,h1Num){
   if(!html.trim())return'';
   const tpl=tpls[blk.type];if(!tpl)return'';
   let out=fillColors(tpl).replace(/{content}/g,html);
+  // {byline} 占位符：仅 quote 块支持，未填则替换为空字符串
+  if(blk.type==='quote'){
+    const byline=(blk.byline||'').trim();
+    out=out.replace(/\{byline\}/g, byline?`—— ${byline}`:'');
+  }
   if(blk.type==='h1')out=fillNum(out);
   return out;
 }
@@ -2246,11 +2510,11 @@ function init(){
     {type:'image',content:''},
     {type:'h2',content:'二级小标题'},
     {type:'body',content:'继续写你的内容…'},
-    {type:'quote',content:'这是引用块，适合放名言、摘抄或强调某句话。'},
+    {type:'quote',content:'这是引用块，适合放名言、摘抄或强调某句话。',byline:'本报特约评论员'},
     {type:'divider',content:''},
     {type:'footer',content:'作者 · 公众号名称 | 觉得有用就点个赞 👍'},
   ];
-  defaults.forEach(d=>{const b=makeBlock(d.type);b.content=d.content||'';g.blocks.push(b);mountBlock(b)});
+  defaults.forEach(d=>{const b=makeBlock(d.type);b.content=d.content||'';if(d.byline)b.byline=d.byline;g.blocks.push(b);mountBlock(b)});
   syncColorUI();
   refreshTemplateTabsUI();
   updatePaperTabsVisibility();
